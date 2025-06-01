@@ -68,39 +68,34 @@ feat_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_va
 fig_imp = px.bar(feat_df, x="Importance", y="Feature", orientation="h", title="Feature Importances")
 st.plotly_chart(fig_imp, use_container_width=True)
 
+# GLobe
 import xarray as xr
-import pandas as pd
 import matplotlib.pyplot as plt
-import streamlit as st
 
-# Load dataset from remote OPeNDAP
-@st.cache_data
+@st.cache_data(show_spinner=True)
 def load_sst_dataset():
     url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
     ds = xr.open_dataset(url)
     return ds
 
+st.subheader("🌡️ SST Monthly Snapshot Visualization")
+
 sst_ds = load_sst_dataset()
 
-# Ensure time is a datetime
-sst_ds['time'] = pd.to_datetime(sst_ds['time'].values)
+# Let user select a time index via slider
+time_idx = st.slider("Select Time Index (Month)", 0, len(sst_ds.time)-1, 0)
 
-# Group by year and compute mean SST for each year
-sst_yearly = sst_ds['sst'].groupby('time.year').mean(dim='time')
+# Extract date string for the selected time
+time_str = str(sst_ds.time[time_idx].values)[:10]
 
-# Streamlit: select a year
-available_years = sst_yearly['year'].values
-selected_year = st.slider("Select Year", int(available_years.min()), int(available_years.max()), 1980)
+# Select SST slice for the chosen time index
+sst_slice = sst_ds['sst'].isel(time=time_idx)
 
-# Plot the selected year's SST
-sst_selected = sst_yearly.sel(year=selected_year)
-
-st.subheader(f"🌍 Global SST Mean for {selected_year}")
-fig, ax = plt.subplots(figsize=(10, 4))
-sst_selected.plot(ax=ax, cmap='coolwarm')
-ax.set_title(f"Mean Sea Surface Temperature ({selected_year})")
+# Plot using matplotlib figure and show in Streamlit
+fig, ax = plt.subplots(figsize=(10,4))
+sst_slice.plot(ax=ax, cmap='coolwarm')
+ax.set_title(f"Sea Surface Temperature on {time_str}")
 st.pyplot(fig)
-
 
 # Download predictions
 st.subheader("📅 Download Predictions")
