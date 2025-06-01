@@ -16,11 +16,11 @@ label_map = {0: "El Niño", 1: "La Niña", 2: "Neutral"}
 st.set_page_config(page_title="ENSOcast", layout="wide")
 
 # === TITLE & INTRO ===
-st.image("ENSOcast_logo_blue.png")
-st.title("ENSOcast — Your ENSO Forecasting Companion")
+st.image("ENSOcast_logo_blue.png", width=120)
 st.subheader("🌎 Understanding ENSO (El Niño—Southern Oscillation)")
-st.markdown("""  
-ENSO stands for El—Niño Southern Oscillation, a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.  
+st.title("ENSOcast — Your ENSO Forecasting Companion")
+st.markdown("""
+ENSO stands for El—Niño Southern Oscillation, is a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.
 These fluctuations strongly influence global weather, affecting rainfall, droughts, and marine ecosystems worldwide.
 
 This app uses machine learning to classify ENSO phases — *El Niño*, *La Niña*, and *Neutral* — based on Sea Surface Temperature (SST) and Oceanic Niño Index (ONI) data.
@@ -46,8 +46,8 @@ def load_sst_dataset():
 
 st.subheader("🌡️ Global Sea Surface Temperature Snapshot (August)")
 st.markdown("""
-This map shows sea surface temperatures (SST) globally for August of the selected year.  
-Warm areas (red) often indicate El Niño conditions, while cooler areas (blue) suggest La Niña.  
+This map shows sea surface temperatures (SST) globally for August of the selected year.
+Warm areas (red) often indicate El Niño conditions, while cooler areas (blue) suggest La Niña.
 Monitoring SST patterns helps predict ENSO phases and their potential impacts worldwide.
 """)
 
@@ -67,7 +67,7 @@ st.pyplot(fig)
 # === TIME SERIES VISUALIZATION ===
 st.subheader("📈 Historical SST and ONI Trends")
 st.markdown("""
-Explore historical trends in Sea Surface Temperature (SST) and Oceanic Niño Index (ONI), which are key indicators used to identify ENSO phases.  
+Explore historical trends in Sea Surface Temperature (SST) and Oceanic Niño Index (ONI), which are key indicators used to identify ENSO phases.
 Use the filters above to customize the timeframe and ENSO phases displayed.
 """)
 
@@ -80,7 +80,7 @@ st.plotly_chart(fig, use_container_width=True)
 # === MODEL PREDICTIONS AND EVALUATION ===
 st.subheader("🤖 ENSO Phase Predictions & Model Performance")
 st.markdown("""
-The Random Forest model predicts ENSO phases based on SST anomalies and recent ONI values, capturing seasonal patterns through sine and cosine transformations of months.  
+The Random Forest model predicts ENSO phases based on SST anomalies and recent ONI values, capturing seasonal patterns through sine and cosine transformations of months.
 Below are the prediction accuracy and detailed classification metrics for each ENSO phase.
 """)
 
@@ -108,7 +108,7 @@ st.dataframe(cm_df)
 # === FEATURE IMPORTANCE ===
 st.subheader("🧩 Feature Importance")
 st.markdown("""
-Understanding which features most influence the model's predictions helps interpret the results and improve model trust.  
+Understanding which features most influence the model's predictions helps interpret the results and improve model trust.
 Here, SST anomalies and recent ONI lag values play the largest roles.
 """)
 importances = model.feature_importances_
@@ -130,4 +130,4 @@ if hasattr(model, 'max_depth'):
     st.write(f"Max Depth: {model.max_depth}")
 
 st.markdown("---")
-st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: Dylan Dsouza")
+st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: You :)")
