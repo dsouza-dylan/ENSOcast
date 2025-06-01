@@ -68,6 +68,34 @@ feat_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_va
 fig_imp = px.bar(feat_df, x="Importance", y="Feature", orientation="h", title="Feature Importances")
 st.plotly_chart(fig_imp, use_container_width=True)
 
+# --- Global SST Viewer ---
+st.subheader("🌍 Global Sea Surface Temperature Viewer")
+
+import xarray as xr
+import matplotlib.pyplot as plt
+
+@st.cache_resource
+def load_sst_dataset():
+    return xr.open_dataset("sst.mon.mean.nc")  # Replace with your actual NetCDF file name
+
+sst_ds = load_sst_dataset()
+times = pd.to_datetime(sst_ds.time.values)
+
+# Streamlit time slider
+selected_time = st.slider("Select SST Date", min_value=times.min(), max_value=times.max(), value=times[0], format="YYYY-MM")
+
+# Get the index of the selected time
+time_index = int(np.where(times == selected_time)[0][0])
+
+# Select using isel
+sst_selected = sst_ds['sst'].isel(time=time_index)
+
+# Plot SST map
+fig, ax = plt.subplots(figsize=(10, 4))
+sst_selected.plot(ax=ax, cmap="coolwarm", cbar_kwargs={'label': '°C'})
+ax.set_title(f"Global SST at {selected_time.strftime('%Y-%m')}")
+st.pyplot(fig)
+
 # Download predictions
 st.subheader("📅 Download Predictions")
 df["Predicted_Phase"] = y_pred_labels
@@ -80,6 +108,7 @@ if hasattr(model, 'n_estimators'):
     st.write(f"Number of Trees: {model.n_estimators}")
 if hasattr(model, 'max_depth'):
     st.write(f"Max Depth: {model.max_depth}")
+
 
 st.markdown("---")
 st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: You :)")
