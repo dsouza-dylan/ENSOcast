@@ -68,32 +68,33 @@ feat_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_va
 fig_imp = px.bar(feat_df, x="Importance", y="Feature", orientation="h", title="Feature Importances")
 st.plotly_chart(fig_imp, use_container_width=True)
 
-# --- Global SST Viewer ---
-st.subheader("🌍 Global Sea Surface Temperature Viewer")
-
+# GLobe
 import xarray as xr
 import matplotlib.pyplot as plt
 
-@st.cache_resource
+@st.cache_data(show_spinner=True)
 def load_sst_dataset():
-    return xr.open_dataset("sst.mon.mean.nc")  # Replace with your actual NetCDF file name
+    url = "http://test.opendap.org/dap/data/nc/sst.mnmean.nc.gz"
+    ds = xr.open_dataset(url)
+    return ds
+
+st.subheader("🌡️ SST Monthly Snapshot Visualization")
 
 sst_ds = load_sst_dataset()
-times = pd.to_datetime(sst_ds.time.values)
 
-# Streamlit time slider
-selected_time = st.slider("Select SST Date", min_value=times.min(), max_value=times.max(), value=times[0], format="YYYY-MM")
+# Let user select a time index via slider
+time_idx = st.slider("Select Time Index (Month)", 0, len(sst_ds.time)-1, 0)
 
-# Get the index of the selected time
-time_index = int(np.where(times == selected_time)[0][0])
+# Extract date string for the selected time
+time_str = str(sst_ds.time[time_idx].values)[:10]
 
-# Select using isel
-sst_selected = sst_ds['sst'].isel(time=time_index)
+# Select SST slice for the chosen time index
+sst_slice = sst_ds['sst'].isel(time=time_idx)
 
-# Plot SST map
-fig, ax = plt.subplots(figsize=(10, 4))
-sst_selected.plot(ax=ax, cmap="coolwarm", cbar_kwargs={'label': '°C'})
-ax.set_title(f"Global SST at {selected_time.strftime('%Y-%m')}")
+# Plot using matplotlib figure and show in Streamlit
+fig, ax = plt.subplots(figsize=(10,4))
+sst_slice.plot(ax=ax, cmap='coolwarm')
+ax.set_title(f"Sea Surface Temperature on {time_str}")
 st.pyplot(fig)
 
 # Download predictions
