@@ -74,7 +74,7 @@ import matplotlib.pyplot as plt
 
 @st.cache_data(show_spinner=True)
 def load_sst_dataset():
-    url = "http://test.opendap.org/dap/data/nc/sst.mnmean.nc.gz"
+    url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
     ds = xr.open_dataset(url)
     return ds
 
