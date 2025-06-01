@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,7 +8,6 @@ from sklearn.metrics import classification_report, confusion_matrix
 import xarray as xr
 import matplotlib.pyplot as plt
 
-# Load data and model
 df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
 model = joblib.load("best_rf_model.pkl")
 
@@ -17,10 +17,11 @@ label_map = {0: "El Niño", 1: "La Niña", 2: "Neutral"}
 st.set_page_config(page_title="ENSOcast", layout="wide")
 
 # === TITLE & INTRO ===
-st.title("🌎 ENSOcast — Your ENSO Forecasting Companion")
-st.markdown("""
-**Understanding ENSO (El Niño Southern Oscillation)**  
-ENSO is a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.  
+st.image("ENSOcast_logo_blue.png", width=120)
+st.subheader("🌎 Understanding ENSO (El Niño—Southern Oscillation)")
+st.title("ENSOcast — Your ENSO Forecasting Companion")
+st.markdown("""  
+ENSO stands for El—Niño Southern Oscillation, a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.  
 These fluctuations strongly influence global weather, affecting rainfall, droughts, and marine ecosystems worldwide.
 
 This app uses machine learning to classify ENSO phases — *El Niño*, *La Niña*, and *Neutral* — based on Sea Surface Temperature (SST) and Oceanic Niño Index (ONI) data.
