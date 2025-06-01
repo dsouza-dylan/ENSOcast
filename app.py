@@ -16,9 +16,9 @@ label_map = {0: "El Niño", 1: "La Niña", 2: "Neutral"}
 st.set_page_config(page_title="ENSOcast", layout="wide")
 
 # === TITLE & INTRO ===
-st.image("ENSOcast_logo_blue.png", width=120)
-st.subheader("🌎 Understanding ENSO (El Niño—Southern Oscillation)")
+st.image("ENSOcast_logo_blue.png")
 st.title("ENSOcast — Your ENSO Forecasting Companion")
+st.subheader("🌎 Understanding ENSO (El Niño—Southern Oscillation)")
 st.markdown("""  
 ENSO stands for El—Niño Southern Oscillation, a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.  
 These fluctuations strongly influence global weather, affecting rainfall, droughts, and marine ecosystems worldwide.
@@ -130,4 +130,4 @@ if hasattr(model, 'max_depth'):
     st.write(f"Max Depth: {model.max_depth}")
 
 st.markdown("---")
-st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: You :)")
+st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: Dylan Dsouza")
