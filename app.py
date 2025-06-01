@@ -76,25 +76,25 @@ import matplotlib.pyplot as plt
 def load_sst_dataset():
     url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
     ds = xr.open_dataset(url)
-    return ds
+    ds['time'] = pd.to_datetime(ds['time'].values)
+    august_sst = ds.sel(time=ds['time.month'] == 8)
+    return august_sst
 
-st.subheader("🌡️ SST Monthly Snapshot Visualization")
+st.subheader("🌡️ SST Snapshot (August of Selected Year)")
 
 sst_ds = load_sst_dataset()
 
-# Let user select a time index via slider
-time_idx = st.slider("Select Time Index (Month)", 0, len(sst_ds.time)-1, 0)
+# Extract available August years
+available_years = pd.DatetimeIndex(sst_ds.time.values).year
+selected_year = st.slider("Select Year", int(available_years.min()), int(available_years.max()), 2000)
 
-# Extract date string for the selected time
-time_str = str(sst_ds.time[time_idx].values)[:10]
+# Select SST for chosen August year
+sst_slice = sst_ds.sel(time=str(selected_year))['sst']
 
-# Select SST slice for the chosen time index
-sst_slice = sst_ds['sst'].isel(time=time_idx)
-
-# Plot using matplotlib figure and show in Streamlit
-fig, ax = plt.subplots(figsize=(10,4))
+# Plot
+fig, ax = plt.subplots(figsize=(10, 4))
 sst_slice.plot(ax=ax, cmap='coolwarm')
-ax.set_title(f"Sea Surface Temperature on {time_str}")
+ax.set_title(f"Sea Surface Temperature - August {selected_year}")
 st.pyplot(fig)
 
 # Download predictions
