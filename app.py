@@ -161,7 +161,7 @@ elif page == "📈 Historical Trends":
 
     st.plotly_chart(fig_oni, use_container_width=True)
 
---- Tab 3: Model Insights ---
+# --- Tab 3: Model Insights ---
 elif page == "💡 Model Insights":
     st.header("💡 Model Insights")
     from sklearn.metrics import accuracy_score
