@@ -163,5 +163,10 @@ with tab4:
     fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
     st.plotly_chart(fig, use_container_width=True)
 
+    X_custom = filtered_df[feature_cols]
+    y_pred_custom = model.predict(X_custom)
+    filtered_df["Predicted_Phase"] = [label_map[i] for i in y_pred_custom]
+
+
     st.markdown("### Download Custom Predictions CSV")
-    st.download_button("📥 Download Custom Predictions", custom_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
+    st.download_button("📥 Download Custom Predictions", filtered_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
