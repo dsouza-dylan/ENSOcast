@@ -38,7 +38,7 @@ X = df[feature_cols]
 y_true = df["ENSO_Label"]
 y_pred = model.predict(X)
 
-label_map = {0: "El Niño", 1: "La Niña", 2: "Neutral"}
+label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
 df["Predicted_Phase"] = [label_map[i] for i in y_pred]
 df["True_Phase"] = [label_map[i] for i in y_true]
 
@@ -47,13 +47,13 @@ st.title("🌊 ENSOcast: El Niño–Southern Oscillation Forecasts")
 # st.subheader("Track, Understand, and Forecast ENSO Events")
 
 # --- Tabs ---
-# tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"])
+# tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "💡 Model Insights", "📤 Download"])
 st.sidebar.title("📂 ENSOcast")
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔍 Tab Navigation")
 page = st.sidebar.radio(
     "",
-    ["🌡 Global SST Snapshot", "📈 Historical Trends", "🔎 Model Insights", "📤 Custom"],
+    ["🌡 Global SST Snapshot", "📈 Historical Trends", "💡 Model Insights", "📤 Custom"],
     index=0
 )
 st.sidebar.markdown("### ")
@@ -91,8 +91,8 @@ elif page == "📈 Historical Trends":
     # --- User Filters ---
     years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect(
-        "Select ENSO Phases", ["El Niño", "La Niña", "Neutral"],
-        default=["El Niño", "La Niña", "Neutral"]
+        "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
+        default=["La Niña", "Neutral", "El Niño"]
     )
 
     # --- Apply Filters ---
@@ -162,8 +162,8 @@ elif page == "📈 Historical Trends":
     st.plotly_chart(fig_oni, use_container_width=True)
 
 # --- Tab 3: Model Insights ---
-elif page == "🔎 Model Insights":
-    st.header("🔎 Model Insights")
+elif page == "💡 Model Insights":
+    st.header("💡 Model Insights")
     from sklearn.metrics import accuracy_score
 
     accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
@@ -174,8 +174,8 @@ elif page == "🔎 Model Insights":
     st.dataframe(pd.DataFrame(report).transpose().round(2))
 
     st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "La Niña", "Neutral"])
-    st.dataframe(pd.DataFrame(cm, index=["True El Niño", "True La Niña", "True Neutral"], columns=["Pred El Niño", "Pred La Niña", "Pred Neutral"]))
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
+    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
 
     st.markdown("### Feature Importance")
     importance_df = pd.DataFrame({
@@ -196,7 +196,7 @@ elif page == "📤 Custom":
 
     # --- User Filters ---
     years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
-    selected_phases = st.multiselect("Select ENSO Phases", ["El Niño", "La Niña", "Neutral"], default=["El Niño", "La Niña", "Neutral"])
+    selected_phases = st.multiselect("Select ENSO Phases", ["La Niña", "Neutral", "El Niño"], default=["La Niña", "Neutral", "El Niño"])
 
     filtered_df = df[
         (df["Date"].dt.year >= years[0]) &
@@ -227,9 +227,9 @@ elif page == "📤 Custom":
     st.dataframe(pd.DataFrame(report).transpose().round(2))
 
     st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred_custom, labels=["El Niño", "La Niña", "Neutral"])
-    st.dataframe(pd.DataFrame(cm, index=["True El Niño", "True La Niña", "True Neutral"],
-                              columns=["Pred El Niño", "Pred La Niña", "Pred Neutral"]))
+    cm = confusion_matrix(y_test, y_pred_custom, labels=["La Niña", "Neutral", "El Niño"])
+    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"],
+                              columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
 
     importance_df = pd.DataFrame({
         "Feature": feature_cols,
