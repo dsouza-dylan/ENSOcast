@@ -78,17 +78,24 @@ if page == "🌡 SST Snapshot":
     except Exception as e:
         st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
 
-# --- Tab 2: Trends ---
 elif page == "📈 Trends":
     st.header("📈 Historical Trends")
-    # st.markdown("### SST Anomaly Timeline")
-    # fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
-    # st.plotly_chart(fig, use_container_width=True)
-    #
-    # st.markdown("### SST Anomaly Timeline")
-    # fig_abs = px.line(df, x="Date", y="SST", labels={"SST": "SST (°C)"})
-    # st.plotly_chart(fig_abs, use_container_width=True)
 
+    # --- User Filters ---
+    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
+    selected_phases = st.multiselect(
+        "Select ENSO Phases", ["El Niño", "La Niña", "Neutral"],
+        default=["El Niño", "La Niña", "Neutral"]
+    )
+
+    # --- Apply Filters ---
+    df_filtered = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["ENSO_Phase"].isin(selected_phases))
+    ]
+
+    # --- SST Anomaly vs Absolute SST ---
     from plotly.subplots import make_subplots
     import plotly.graph_objects as go
 
@@ -96,15 +103,21 @@ elif page == "📈 Trends":
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Add SST Anomaly
     fig.add_trace(
-        go.Scatter(x=df["Date"], y=df["SST_Climatology"], name="SST Climatology (°C)", line=dict(color='deepskyblue', dash = 'dot')),
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
+            name="SST Climatology (°C)",
+            line=dict(color='deepskyblue', dash='dot')
+        ),
         secondary_y=True,
     )
 
-    # Add Absolute SST
     fig.add_trace(
-        go.Scatter(x=df["Date"], y=df["SST"], name="SST (°C)", line=dict(color='orange')),
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST"],
+            name="SST (°C)",
+            line=dict(color='orange')
+        ),
         secondary_y=False,
     )
 
@@ -117,25 +130,88 @@ elif page == "📈 Trends":
     )
 
     fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
-    fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels = False)
+    fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels=False)
 
-    climatology_min = df["SST_Climatology"].min()
-    climatology_max = df["SST_Climatology"].max()
+    climatology_min = df_filtered["SST_Climatology"].min()
+    climatology_max = df_filtered["SST_Climatology"].max()
 
     fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
                   annotation_text="Climatology Min", annotation_position="bottom left")
 
     fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
                   annotation_text="Climatology Max", annotation_position="top left")
+
     st.plotly_chart(fig, use_container_width=True)
 
-
-
+    # --- ONI Timeline ---
     st.markdown("### ONI Timeline")
-    fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
-    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
-    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
+    fig_oni = px.line(df_filtered, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time")
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
+                      annotation_text="El Niño Threshold", annotation_position="bottom right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
+                      annotation_text="La Niña Threshold", annotation_position="top right")
+
     st.plotly_chart(fig_oni, use_container_width=True)
+
+
+# # --- Tab 2: Trends ---
+# elif page == "📈 Trends":
+#     st.header("📈 Historical Trends")
+#     # st.markdown("### SST Anomaly Timeline")
+#     # fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
+#     # st.plotly_chart(fig, use_container_width=True)
+#     #
+#     # st.markdown("### SST Anomaly Timeline")
+#     # fig_abs = px.line(df, x="Date", y="SST", labels={"SST": "SST (°C)"})
+#     # st.plotly_chart(fig_abs, use_container_width=True)
+#
+#     from plotly.subplots import make_subplots
+#     import plotly.graph_objects as go
+#
+#     st.markdown("### SST Anomaly vs Absolute SST (Dual Axis)")
+#
+#     fig = make_subplots(specs=[[{"secondary_y": True}]])
+#
+#     # Add SST Anomaly
+#     fig.add_trace(
+#         go.Scatter(x=df["Date"], y=df["SST_Climatology"], name="SST Climatology (°C)", line=dict(color='deepskyblue', dash = 'dot')),
+#         secondary_y=True,
+#     )
+#
+#     # Add Absolute SST
+#     fig.add_trace(
+#         go.Scatter(x=df["Date"], y=df["SST"], name="SST (°C)", line=dict(color='orange')),
+#         secondary_y=False,
+#     )
+#
+#     fig.update_layout(
+#         xaxis_title="Date",
+#         yaxis_title="SST (°C)",
+#         legend=dict(x=0.01, y=1.1),
+#         template="plotly_dark",
+#         margin=dict(t=30, b=30)
+#     )
+#
+#     fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
+#     fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels = False)
+#
+#     climatology_min = df["SST_Climatology"].min()
+#     climatology_max = df["SST_Climatology"].max()
+#
+#     fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
+#                   annotation_text="Climatology Min", annotation_position="bottom left")
+#
+#     fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
+#                   annotation_text="Climatology Max", annotation_position="top left")
+#     st.plotly_chart(fig, use_container_width=True)
+#
+#
+#
+#     st.markdown("### ONI Timeline")
+#     fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
+#     fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
+#     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
+#     st.plotly_chart(fig_oni, use_container_width=True)
 
     # st.markdown("### Predicted ENSO Phase")
     # fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
@@ -221,11 +297,12 @@ elif page == "🔎 Model Insights":
 
 # --- Tab 4: Download ---
 elif page == "📤 Download":
+    from sklearn.metrics import accuracy_score
     st.header("📤 Download Center")
     st.markdown("### Custom Model Evaluation")
 
     # --- User Filters ---
-    years = st.slider("Select Year Range", 1981, 2025, (2000, 2020))
+    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect("Select ENSO Phases", ["El Niño", "La Niña", "Neutral"], default=["El Niño", "La Niña", "Neutral"])
 
     filtered_df = df[
