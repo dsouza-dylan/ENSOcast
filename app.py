@@ -57,7 +57,7 @@ page = st.sidebar.radio(
 # --- Tab 1: SST Snapshot ---
 if page == "🌡 Global SST Snapshot":
     st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
-    # st.markdown("### Global SST Snapshot")
+    st.markdown("### Global SST Snapshot")
     selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
     month_dict = {
         "January": 1, "February": 2, "March": 3, "April": 4,
