@@ -165,4 +165,3 @@ with tab4:
 
     st.markdown("### Download Custom Predictions CSV")
     st.download_button("📥 Download Custom Predictions", custom_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
-)
