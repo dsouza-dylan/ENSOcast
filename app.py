@@ -91,7 +91,7 @@ with tab2:
 
     # Add SST Anomaly
     fig.add_trace(
-        go.Scatter(x=df["Date"], y=df["SST_Climatology"], name="SST Climatology (°C)", line=dict(color='deepskyblue')),
+        go.Scatter(x=df["Date"], y=df["SST_Climatology"], name="SST Climatology (°C)", line=dict(color='deepskyblue', dash = 'dot')),
         secondary_y=True,
     )
 
@@ -104,11 +104,13 @@ with tab2:
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="SST (°C)",
-        legend=dict(x=0.01, y = 15.00),
-        template="plotly_dark"
+        legend=dict(x=0.01, y=1.1),
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
     )
-    fig.update_yaxes(title_text="SST (°C)", secondary_y=True)
 
+    fig.update_yaxes(title_text="SST (°C)", range=[23, 30], secondary_y=False)
+    fig.update_yaxes(title_text="Climatology (°C)", range=[23, 30], secondary_y=True)
     st.plotly_chart(fig, use_container_width=True)
 
 
