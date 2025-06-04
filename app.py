@@ -137,7 +137,7 @@ elif page == "📈 Historical Trends":
     )
 
     fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
-    # fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels=False)
+    fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels=False)
 
     climatology_min = df_filtered["SST_Climatology"].min()
     climatology_max = df_filtered["SST_Climatology"].max()
