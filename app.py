@@ -95,6 +95,26 @@ with tab3:
     accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
     st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
 
+    st.markdown("### Classification Report")
+    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
+    st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    st.markdown("### Confusion Matrix")
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "La Niña", "Neutral"])
+    st.dataframe(pd.DataFrame(cm, index=["True El Niño", "True La Niña", "True Neutral"], columns=["Pred El Niño", "Pred La Niña", "Pred Neutral"]))
+
+    st.markdown("### Feature Importance")
+    importance_df = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": model.feature_importances_
+    }).sort_values("Importance", ascending=False)
+    fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+    st.plotly_chart(fig3, use_container_width=True)
+    st.markdown("### Download Predictions CSV")
+    st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="enso_predictions.csv", mime="text/csv")
+
+# --- Tab 4: Download ---
+with tab4:
     st.markdown("### Custom Model Evaluation")
 
     # --- User Filters ---
@@ -141,24 +161,3 @@ with tab3:
 
     fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
     st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Classification Report")
-    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "La Niña", "Neutral"])
-    st.dataframe(pd.DataFrame(cm, index=["True El Niño", "True La Niña", "True Neutral"], columns=["Pred El Niño", "Pred La Niña", "Pred Neutral"]))
-
-    st.markdown("### Feature Importance")
-    importance_df = pd.DataFrame({
-        "Feature": feature_cols,
-        "Importance": model.feature_importances_
-    }).sort_values("Importance", ascending=False)
-    fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
-    st.plotly_chart(fig3, use_container_width=True)
-
-# --- Tab 4: Download ---
-with tab4:
-    st.markdown("### Download Predictions CSV")
-    st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="enso_predictions.csv", mime="text/csv")
