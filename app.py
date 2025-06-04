@@ -74,9 +74,43 @@ with tab1:
 
 # --- Tab 2: Trends ---
 with tab2:
-    st.markdown("### SST Anomaly Timeline")
-    fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
+    # st.markdown("### SST Anomaly Timeline")
+    # fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
+    # st.plotly_chart(fig, use_container_width=True)
+    #
+    # st.markdown("### SST Anomaly Timeline")
+    # fig_abs = px.line(df, x="Date", y="SST", labels={"SST": "SST (°C)"})
+    # st.plotly_chart(fig_abs, use_container_width=True)
+
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    st.markdown("### SST Anomaly vs Absolute SST (Dual Axis)")
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Add SST Anomaly
+    fig.add_trace(
+        go.Scatter(x=df["Date"], y=df["SST_Anomaly"], name="SST Anomaly (°C)", line=dict(color='deepskyblue')),
+        secondary_y=False,
+    )
+
+    # Add Absolute SST
+    fig.add_trace(
+        go.Scatter(x=df["Date"], y=df["SST"], name="SST (°C)", line=dict(color='orange')),
+        secondary_y=True,
+    )
+
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="SST Anomaly (°C)",
+        legend=dict(x=0.01, y=0.99),
+        template="plotly_dark"
+    )
+    fig.update_yaxes(title_text="SST (°C)", secondary_y=True)
+
     st.plotly_chart(fig, use_container_width=True)
+
 
     st.subheader("### ONI Timeline")
     fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
