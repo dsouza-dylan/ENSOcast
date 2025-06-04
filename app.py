@@ -78,43 +78,11 @@ with tab2:
     fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
     st.plotly_chart(fig, use_container_width=True)
 
-    # st.subheader("### ONI Timeline")
-    # fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
-    # fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
-    # fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
-    # st.plotly_chart(fig_oni, use_container_width=True)
-    st.subheader("ONI Timeline")
-
-    fig_oni = px.line(df, x="Date", y="oni", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
-
-    # Add threshold lines
-    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red")
-    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue")
-
-    # Add custom annotations OUTSIDE the plot
-    fig_oni.add_annotation(
-        x=df["Date"].max(), y=0.5,
-        xref="x", yref="y",
-        text="El Niño Threshold (+0.5)",
-        showarrow=False,
-        font=dict(color="red"),
-        xanchor="left",
-        yanchor="bottom",
-        bgcolor="rgba(255,255,255,0.8)"
-    )
-    fig_oni.add_annotation(
-        x=df["Date"].max(), y=-0.5,
-        xref="x", yref="y",
-        text="La Niña Threshold (−0.5)",
-        showarrow=False,
-        font=dict(color="blue"),
-        xanchor="left",
-        yanchor="top",
-        bgcolor="rgba(255,255,255,0.8)"
-    )
-
+    st.subheader("### ONI Timeline")
+    fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
     st.plotly_chart(fig_oni, use_container_width=True)
-
 
     st.markdown("### Predicted ENSO Phase")
     fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
