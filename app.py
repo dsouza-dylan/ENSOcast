@@ -104,7 +104,7 @@ with tab2:
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="SST (°C)",
-        legend=dict(x=0.01, y = 25.00),
+        legend=dict(x=0.01, y = 15.00),
         template="plotly_dark"
     )
     fig.update_yaxes(title_text="SST (°C)", secondary_y=True)
