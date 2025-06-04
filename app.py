@@ -78,6 +78,12 @@ with tab2:
     fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
     st.plotly_chart(fig, use_container_width=True)
 
+    st.subheader("ONI Timeline")
+    fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
+    st.plotly_chart(fig_oni, use_container_width=True)
+
     st.markdown("### Predicted ENSO Phase")
     fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
     st.plotly_chart(fig2, use_container_width=True)
