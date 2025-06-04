@@ -78,15 +78,81 @@ with tab2:
     fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("ONI Timeline")
+    st.subheader("### ONI Timeline")
     fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
     fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
     st.plotly_chart(fig_oni, use_container_width=True)
 
+    # st.markdown("### Predicted ENSO Phase")
+    # fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
+    # st.plotly_chart(fig2, use_container_width=True)
+    import plotly.graph_objects as go
+
+    # Map phases to colors
+    color_map = {
+        "El Niño": "#e74c3c",  # red
+        "La Niña": "#3498db",  # blue
+        "Neutral": "#95a5a6"   # gray
+    }
+
+    # Group continuous phase blocks
+    def get_phase_segments(df):
+        segments = []
+        prev_phase = None
+        start_date = None
+
+        for i, row in df.iterrows():
+            current_phase = row["Predicted_Phase"]
+            if current_phase != prev_phase:
+                if prev_phase is not None:
+                    segments.append({
+                        "Phase": prev_phase,
+                        "Start": start_date,
+                        "End": row["Date"]
+                    })
+                start_date = row["Date"]
+                prev_phase = current_phase
+
+        # Add final segment
+        if prev_phase is not None:
+            segments.append({
+                "Phase": prev_phase,
+                "Start": start_date,
+                "End": df["Date"].iloc[-1]
+            })
+
+        return pd.DataFrame(segments)
+
+    phase_segments = get_phase_segments(df)
+
+    # Create horizontal bar chart
     st.markdown("### Predicted ENSO Phase")
-    fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
-    st.plotly_chart(fig2, use_container_width=True)
+    fig = go.Figure()
+
+    for _, row in phase_segments.iterrows():
+        fig.add_trace(go.Bar(
+            x=[(row["End"] - row["Start"]).days],
+            y=["Predicted ENSO Phase"],
+            base=(row["Start"]),
+            orientation="h",
+            name=row["Phase"],
+            marker=dict(color=color_map[row["Phase"]]),
+            hovertext=f"{row['Phase']}: {row['Start'].date()} → {row['End'].date()}",
+            showlegend=False
+        ))
+
+    fig.update_layout(
+        barmode='stack',
+        height=120,
+        xaxis_title="Date",
+        xaxis=dict(type="date"),
+        yaxis=dict(showticklabels=False),
+        margin=dict(l=20, r=20, t=20, b=20)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 
 # --- Tab 3: Model Insights ---
 with tab3:
