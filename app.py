@@ -91,20 +91,20 @@ with tab2:
 
     # Add SST Anomaly
     fig.add_trace(
-        go.Scatter(x=df["Date"], y=df["SST_Anomaly"], name="SST Anomaly (°C)", line=dict(color='deepskyblue')),
-        secondary_y=False,
+        go.Scatter(x=df["Date"], y=df["SST_Climatology"], name="SST Climatology (°C)", line=dict(color='deepskyblue')),
+        secondary_y=True,
     )
 
     # Add Absolute SST
     fig.add_trace(
         go.Scatter(x=df["Date"], y=df["SST"], name="SST (°C)", line=dict(color='orange')),
-        secondary_y=True,
+        secondary_y=False,
     )
 
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="SST Anomaly (°C)",
-        legend=dict(x=0.01, y=0.99),
+        yaxis_title="SST (°C)",
+        legend=dict(x=0.01, y = 25.00),
         template="plotly_dark"
     )
     fig.update_yaxes(title_text="SST (°C)", secondary_y=True)
