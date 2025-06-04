@@ -151,16 +151,16 @@ elif page == "📈 Historical Trends":
     st.plotly_chart(fig_oni, use_container_width=True)
 
     st.markdown("### Southern Oscillation Index (SOI) Timeline")
-        fig_soi = px.line(df_filtered, x="Date", y="SOI")
-        fig_soi.update_layout(
-            yaxis_title="Southern Oscillation Index",
-            template="plotly_dark",
-            margin=dict(t=30, b=30)
-        )
-        fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Neutral Line", annotation_position="top right")
-        fig_soi.add_hrect(y0=7, y1=20, line_width=0, fillcolor="blue", opacity=0.1)
-        fig_soi.add_hrect(y0=-20, y1=-7, line_width=0, fillcolor="red", opacity=0.1)
-        st.plotly_chart(fig_soi, use_container_width=True)
+    fig_soi = px.line(df_filtered, x="Date", y="SOI")
+    fig_soi.update_layout(
+        yaxis_title="Southern Oscillation Index",
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Neutral Line", annotation_position="top right")
+    fig_soi.add_hrect(y0=7, y1=20, line_width=0, fillcolor="blue", opacity=0.1)
+    fig_soi.add_hrect(y0=-20, y1=-7, line_width=0, fillcolor="red", opacity=0.1)
+    st.plotly_chart(fig_soi, use_container_width=True)
 
 elif page == "💡 Model Insights":
     st.header("💡 Model Insights")
