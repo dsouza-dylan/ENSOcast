@@ -109,9 +109,19 @@ with tab2:
         margin=dict(t=30, b=30)
     )
 
-    fig.update_yaxes(title_text="SST (°C)", range=[23, 30], secondary_y=False)
-    fig.update_yaxes(title_text="Climatology (°C)", range=[23, 30], secondary_y=True)
+    fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
+    fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels = False)
     st.plotly_chart(fig, use_container_width=True)
+
+    climatology_min = df["SST_Climatology"].min()
+    climatology_max = df["SST_Climatology"].max()
+
+    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
+                  annotation_text="Climatology Min", annotation_position="bottom left")
+
+    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
+                  annotation_text="Climatology Max", annotation_position="top left")
+
 
 
     st.subheader("### ONI Timeline")
