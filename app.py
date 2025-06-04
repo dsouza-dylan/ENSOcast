@@ -70,7 +70,7 @@ if page == "🌡 Global SST Snapshot":
 
     try:
         sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(12, 6))
         sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
         ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
         ax.text(189, 8, 'Niño 3.4 Region', color='black')
