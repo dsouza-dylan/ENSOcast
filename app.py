@@ -116,10 +116,10 @@ with tab2:
     climatology_min = df["SST_Climatology"].min()
     climatology_max = df["SST_Climatology"].max()
 
-    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
+    fig.add_hline(y=climatology_min, line_dash="dot", line_color="red",
                   annotation_text="Climatology Min", annotation_position="bottom left")
 
-    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
+    fig.add_hline(y=climatology_max, line_dash="dot", line_color="red",
                   annotation_text="Climatology Max", annotation_position="top left")
 
 
