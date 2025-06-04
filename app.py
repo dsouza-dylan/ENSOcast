@@ -42,7 +42,7 @@ phases_selected = st.sidebar.multiselect("ENSO Phases", label_order, default=lab
 df_filtered = df[
     (df["Date"].dt.year >= year_range[0]) &
     (df["Date"].dt.year <= year_range[1]) &
-    (df["ENSO_Phase"].isin(phases_selected))
+    (df["ENSO_Label"].isin(phases_selected))
 ].copy()
 
 # --- Features for Prediction ---
