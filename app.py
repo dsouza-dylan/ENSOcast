@@ -48,14 +48,15 @@ st.title("🌊 ENSOcast: El Niño–Southern Oscillation Forecasts")
 
 # --- Tabs ---
 # tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"])
-st.sidebar.title("📂 Navigation")
+st.sidebar.title("📂 ENSOcast")
 st.sidebar.markdown("---")
-st.sidebar.subheader("🔍 Explore")
+st.sidebar.subheader("🔍 Tab Navigation")
 page = st.sidebar.radio(
+    "",
     ["🌡 Global SST Snapshot", "📈 Historical Trends", "🔎 Model Insights", "📤 Custom"],
     index=0
 )
-
+st.sidebar.markdown("### ")
 st.sidebar.markdown("---")
 st.sidebar.markdown("Made by Dylan Dsouza")
 # --- Tab 1: SST Snapshot ---
