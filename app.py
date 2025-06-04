@@ -43,17 +43,22 @@ df["Predicted_Phase"] = [label_map[i] for i in y_pred]
 df["True_Phase"] = [label_map[i] for i in y_true]
 
 # --- Header ---
-st.title("🌊 ENSOcast - Forecast El Niño–Southern Oscillation Events")
+st.title("🌊 ENSOcast: El Niño–Southern Oscillation Forecasts")
 # st.subheader("Track, Understand, and Forecast ENSO Events")
 
 # --- Tabs ---
 # tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"])
 st.sidebar.title("📂 ENSOcast Navigation")
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔍 Explore")
 page = st.sidebar.radio(
-    "Go to",
-    ["🌡 Global SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"],
+    "",
+    ["🌡 Global SST Snapshot", "📈 Historical Trends", "🔎 Model Insights", "📤 Custom"],
     index=0
 )
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("Made by Dylan Dsouza")
 # --- Tab 1: SST Snapshot ---
 if page == "🌡 Global SST Snapshot":
     st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
@@ -80,7 +85,7 @@ if page == "🌡 Global SST Snapshot":
     except Exception as e:
         st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
 
-elif page == "📈 Trends":
+elif page == "📈 Historical Trends":
     st.header("📈 Historical Trends")
 
     # --- User Filters ---
@@ -101,7 +106,7 @@ elif page == "📈 Trends":
     from plotly.subplots import make_subplots
     import plotly.graph_objects as go
 
-    st.markdown("### SST Anomaly vs Absolute SST (Dual Axis)")
+    st.markdown("### Sea Surface Temperature (SST) Timeline")
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -298,7 +303,7 @@ elif page == "🔎 Model Insights":
     st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="enso_predictions.csv", mime="text/csv")
 
 # --- Tab 4: Download ---
-elif page == "📤 Download":
+elif page == "📤 Custom":
     from sklearn.metrics import accuracy_score
     st.header("📤 Download Center")
     st.markdown("### Custom Model Evaluation")
