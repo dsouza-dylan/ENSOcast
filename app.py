@@ -78,85 +78,47 @@ with tab2:
     fig = px.line(df, x="Date", y="SST_Anomaly", labels={"SST_Anomaly": "SST Anomaly (°C)"})
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("### ONI Timeline")
-    fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
-    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
-    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
-    st.plotly_chart(fig_oni, use_container_width=True)
+    # st.subheader("### ONI Timeline")
+    # fig_oni = px.line(df, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
+    # fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold", annotation_position="bottom right")
+    # fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
+    # st.plotly_chart(fig_oni, use_container_width=True)
+    st.subheader("ONI Timeline")
 
-    # st.markdown("### Predicted ENSO Phase")
-    # fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
-    # st.plotly_chart(fig2, use_container_width=True)
-    import plotly.graph_objects as go
+    fig_oni = px.line(df, x="Date", y="oni", title="ONI (Oceanic Niño Index) Over Time", labels={"oni": "ONI Value"})
 
-    # Map phases to colors
-    color_map = {
-        "El Niño": "#e74c3c",   # red
-        "La Niña": "#3498db",   # blue
-        "Neutral": "#95a5a6"    # gray
-    }
+    # Add threshold lines
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue")
 
-    # Group continuous ENSO phases into segments
-    def get_phase_segments(df):
-        segments = []
-        prev_phase = None
-        start_date = None
-
-        for i, row in df.iterrows():
-            current_phase = row["Predicted_Phase"]
-            if current_phase != prev_phase:
-                if prev_phase is not None:
-                    segments.append({
-                        "Phase": prev_phase,
-                        "Start": start_date,
-                        "End": row["Date"]
-                    })
-                start_date = row["Date"]
-                prev_phase = current_phase
-
-        # Add final segment
-        if prev_phase is not None:
-            segments.append({
-                "Phase": prev_phase,
-                "Start": start_date,
-                "End": df["Date"].iloc[-1] + pd.Timedelta(days=1)
-            })
-
-        return pd.DataFrame(segments)
-
-    # Ensure Date is datetime
-    df["Date"] = pd.to_datetime(df["Date"])
-
-    # Get segments
-    phase_segments = get_phase_segments(df)
-
-    # Plot
-    st.markdown("### Predicted ENSO Phase")
-    fig = go.Figure()
-
-    for _, row in phase_segments.iterrows():
-        fig.add_trace(go.Bar(
-            x=[(row["End"] - row["Start"]).days],
-            y=["ENSO Phase"],
-            base=row["Start"],
-            orientation="h",
-            marker=dict(color=color_map[row["Phase"]]),
-            hovertext=f"{row['Phase']}: {row['Start'].date()} to {row['End'].date()}",
-            name=row["Phase"],
-            showlegend=False
-        ))
-
-    fig.update_layout(
-        barmode="stack",
-        height=100,
-        xaxis_title="Date",
-        xaxis=dict(type="date"),
-        yaxis=dict(showticklabels=False),
-        margin=dict(l=30, r=30, t=30, b=30)
+    # Add custom annotations OUTSIDE the plot
+    fig_oni.add_annotation(
+        x=df["Date"].max(), y=0.5,
+        xref="x", yref="y",
+        text="El Niño Threshold (+0.5)",
+        showarrow=False,
+        font=dict(color="red"),
+        xanchor="left",
+        yanchor="bottom",
+        bgcolor="rgba(255,255,255,0.8)"
+    )
+    fig_oni.add_annotation(
+        x=df["Date"].max(), y=-0.5,
+        xref="x", yref="y",
+        text="La Niña Threshold (−0.5)",
+        showarrow=False,
+        font=dict(color="blue"),
+        xanchor="left",
+        yanchor="top",
+        bgcolor="rgba(255,255,255,0.8)"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_oni, use_container_width=True)
 
+
+    st.markdown("### Predicted ENSO Phase")
+    fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
+    st.plotly_chart(fig2, use_container_width=True)
 
 # --- Tab 3: Model Insights ---
 with tab3:
