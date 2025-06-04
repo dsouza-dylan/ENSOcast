@@ -113,7 +113,7 @@ elif page == "📈 Historical Trends":
     fig.add_trace(
         go.Scatter(
             x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
-            name="SST Climatology (°C)",
+            name="Climatological SST (°C)",
             line=dict(color='deepskyblue', dash='dot')
         ),
         secondary_y=True,
@@ -122,7 +122,7 @@ elif page == "📈 Historical Trends":
     fig.add_trace(
         go.Scatter(
             x=df_filtered["Date"], y=df_filtered["SST"],
-            name="SST (°C)",
+            name="Observed SST (°C)",
             line=dict(color='orange')
         ),
         secondary_y=False,
@@ -130,33 +130,33 @@ elif page == "📈 Historical Trends":
 
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="SST (°C)",
+        yaxis_title="Sea Surface Temperature (°C)",
         legend=dict(x=0.01, y=1.1),
         template="plotly_dark",
         margin=dict(t=30, b=30)
     )
 
     fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
-    fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels=False)
+    # fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels=False)
 
     climatology_min = df_filtered["SST_Climatology"].min()
     climatology_max = df_filtered["SST_Climatology"].max()
 
     fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
-                  annotation_text="Climatology Min", annotation_position="bottom left")
+                  annotation_text="Min. Climatological SST", annotation_position="bottom right")
 
     fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
-                  annotation_text="Climatology Max", annotation_position="top left")
+                  annotation_text="Max. Climatological SST", annotation_position="top right")
 
     st.plotly_chart(fig, use_container_width=True)
 
     # --- ONI Timeline ---
-    st.markdown("### ONI Timeline")
-    fig_oni = px.line(df_filtered, x="Date", y="ONI", title="ONI (Oceanic Niño Index) Over Time")
+    st.markdown("### Oceanic Niño Index (ONI) Timeline")
+    fig_oni = px.line(df_filtered, x="Date", y="ONI")
     fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
-                      annotation_text="El Niño Threshold", annotation_position="bottom right")
+                      annotation_text="El Niño Threshold", annotation_position="top right")
     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
-                      annotation_text="La Niña Threshold", annotation_position="top right")
+                      annotation_text="La Niña Threshold", annotation_position="bottom right")
 
     st.plotly_chart(fig_oni, use_container_width=True)
 
