@@ -136,7 +136,13 @@ with tab_trends:
 # --- Tab 3: Model Insights ---
 with tab_model:
     st.header("Model Insights")
-    report = classification_report(df_filtered["True_Phase"], df_filtered["Predicted_Phase"], output_dict=True)
+    if df_filtered.empty:
+        st.warning("Not enough data after filtering to display model insights.")
+    else:
+        report = classification_report(df_filtered["True_Phase"], df_filtered["Predicted_Phase"], output_dict=True)
+        st.metric("Accuracy", f"{report['accuracy']*100:.2f}%")
+        st.dataframe(pd.DataFrame(report).transpose().round(2))
+
     accuracy = report.get("accuracy", 0)
     st.metric("Model Accuracy", f"{accuracy*100:.2f}%")
 
