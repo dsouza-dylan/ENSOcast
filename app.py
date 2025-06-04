@@ -91,12 +91,12 @@ with tab2:
 
     # Map phases to colors
     color_map = {
-        "El Niño": "#e74c3c",  # red
-        "La Niña": "#3498db",  # blue
-        "Neutral": "#95a5a6"   # gray
+        "El Niño": "#e74c3c",   # red
+        "La Niña": "#3498db",   # blue
+        "Neutral": "#95a5a6"    # gray
     }
 
-    # Group continuous phase blocks
+    # Group continuous ENSO phases into segments
     def get_phase_segments(df):
         segments = []
         prev_phase = None
@@ -119,36 +119,40 @@ with tab2:
             segments.append({
                 "Phase": prev_phase,
                 "Start": start_date,
-                "End": df["Date"].iloc[-1]
+                "End": df["Date"].iloc[-1] + pd.Timedelta(days=1)
             })
 
         return pd.DataFrame(segments)
 
+    # Ensure Date is datetime
+    df["Date"] = pd.to_datetime(df["Date"])
+
+    # Get segments
     phase_segments = get_phase_segments(df)
 
-    # Create horizontal bar chart
+    # Plot
     st.markdown("### Predicted ENSO Phase")
     fig = go.Figure()
 
     for _, row in phase_segments.iterrows():
         fig.add_trace(go.Bar(
             x=[(row["End"] - row["Start"]).days],
-            y=["Predicted ENSO Phase"],
-            base=(row["Start"]),
+            y=["ENSO Phase"],
+            base=row["Start"],
             orientation="h",
-            name=row["Phase"],
             marker=dict(color=color_map[row["Phase"]]),
-            hovertext=f"{row['Phase']}: {row['Start'].date()} → {row['End'].date()}",
+            hovertext=f"{row['Phase']}: {row['Start'].date()} to {row['End'].date()}",
+            name=row["Phase"],
             showlegend=False
         ))
 
     fig.update_layout(
-        barmode='stack',
-        height=120,
+        barmode="stack",
+        height=100,
         xaxis_title="Date",
         xaxis=dict(type="date"),
         yaxis=dict(showticklabels=False),
-        margin=dict(l=20, r=20, t=20, b=20)
+        margin=dict(l=30, r=30, t=30, b=30)
     )
 
     st.plotly_chart(fig, use_container_width=True)
