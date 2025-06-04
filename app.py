@@ -8,10 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from sklearn.metrics import classification_report, confusion_matrix
 
-# --- Config ---
 st.set_page_config(page_title="ENSOcast", layout="wide")
 
-# --- Load Data ---
 @st.cache_data
 def load_model_and_data():
     df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
@@ -28,7 +26,6 @@ def load_sst_dataset():
 df, model = load_model_and_data()
 sst_ds = load_sst_dataset()
 
-# --- Features and Labels ---
 feature_cols = [
     "SST_Anomaly", "SOI", "SOI_lag_1", "SOI_lag_2", "SOI_lag_3",
     "SST_Anomaly_lag_1", "SST_Anomaly_lag_2", "SST_Anomaly_lag_3",
@@ -42,15 +39,11 @@ label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
 df["Predicted_Phase"] = [label_map[i] for i in y_pred]
 df["True_Phase"] = [label_map[i] for i in y_true]
 
-# --- Header ---
 st.title("🌊 ENSOcast: El Niño–Southern Oscillation Forecasts")
-# st.subheader("Track, Understand, and Forecast ENSO Events")
 
-# --- Tabs ---
-# tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "💡 Model Insights", "📤 Download"])
-st.sidebar.title("📂 ENSOcast")
+st.sidebar.title("🌊 ENSOcast")
 st.sidebar.markdown("---")
-st.sidebar.subheader("🔍 Tab Navigation")
+st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
     ["🌡 Global SST Snapshot", "📈 Historical Trends", "💡 Model Insights", "🛠 Interactive Prediction Tool"],
@@ -59,7 +52,7 @@ page = st.sidebar.radio(
 st.sidebar.markdown("### ")
 st.sidebar.markdown("---")
 st.sidebar.markdown("Made by Dylan Dsouza")
-# --- Tab 1: SST Snapshot ---
+
 if page == "🌡 Global SST Snapshot":
     st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
     # st.markdown("### Global SST Snapshot")
@@ -88,21 +81,18 @@ if page == "🌡 Global SST Snapshot":
 elif page == "📈 Historical Trends":
     st.header("📈 Historical Trends")
 
-    # --- User Filters ---
     years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect(
         "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
         default=["La Niña", "Neutral", "El Niño"]
     )
 
-    # --- Apply Filters ---
     df_filtered = df[
         (df["Date"].dt.year >= years[0]) &
         (df["Date"].dt.year <= years[1]) &
         (df["ENSO_Phase"].isin(selected_phases))
     ]
 
-    # --- SST Anomaly vs Absolute SST ---
     from plotly.subplots import make_subplots
     import plotly.graph_objects as go
 
@@ -150,7 +140,6 @@ elif page == "📈 Historical Trends":
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- ONI Timeline ---
     st.markdown("### Oceanic Niño Index (ONI) Timeline")
     fig_oni = px.line(df_filtered, x="Date", y="ONI")
     fig_oni.update_yaxes(title_text="Oceanic Niño Index")
@@ -161,7 +150,18 @@ elif page == "📈 Historical Trends":
 
     st.plotly_chart(fig_oni, use_container_width=True)
 
-# --- Tab 3: Model Insights ---
+    st.markdown("### Southern Oscillation Index (SOI) Timeline")
+        fig_soi = px.line(df_filtered, x="Date", y="SOI")
+        fig_soi.update_layout(
+            yaxis_title="Southern Oscillation Index",
+            template="plotly_dark",
+            margin=dict(t=30, b=30)
+        )
+        fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Neutral Line", annotation_position="top right")
+        fig_soi.add_hrect(y0=7, y1=20, line_width=0, fillcolor="blue", opacity=0.1)
+        fig_soi.add_hrect(y0=-20, y1=-7, line_width=0, fillcolor="red", opacity=0.1)
+        st.plotly_chart(fig_soi, use_container_width=True)
+
 elif page == "💡 Model Insights":
     st.header("💡 Model Insights")
     from sklearn.metrics import accuracy_score
@@ -188,13 +188,11 @@ elif page == "💡 Model Insights":
     st.markdown("### Download ENSO Predictions Results")
     st.download_button("📥 Download CSV", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
 
-# --- Tab 4: Download ---
 elif page == "🛠 Interactive Prediction Tool":
     st.header("🛠 Interactive Prediction Tool")
     from sklearn.metrics import accuracy_score
-    st.markdown("### Custom Model Evaluation")
+    st.markdown("### Try the Model Yourself")
 
-    # --- User Filters ---
     years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect("Select ENSO Phases", ["La Niña", "Neutral", "El Niño"], default=["La Niña", "Neutral", "El Niño"])
 
@@ -204,21 +202,17 @@ elif page == "🛠 Interactive Prediction Tool":
         (df["True_Phase"].isin(selected_phases))
     ]
 
-    # --- Prepare Features & Labels ---
     X_custom = filtered_df[feature_cols]
     y_custom = filtered_df["True_Phase"]
 
-    # --- Train/Test Split ---
     from sklearn.model_selection import train_test_split
     X_train, X_test, y_train, y_test = train_test_split(X_custom, y_custom, test_size=0.3, shuffle=False)
 
-    # --- Train Custom Model ---
     from sklearn.ensemble import RandomForestClassifier
     custom_model = RandomForestClassifier(random_state=42)
     custom_model.fit(X_train, y_train)
     y_pred_custom = custom_model.predict(X_test)
 
-    # --- Accuracy ---
     custom_accuracy = accuracy_score(y_test, y_pred_custom)
     st.metric("Custom Model Accuracy", f"{custom_accuracy * 100:.2f}%")
 
