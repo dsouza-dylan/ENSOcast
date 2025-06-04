@@ -53,9 +53,13 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "🔎 Mode
 with tab1:
     st.markdown("### Global SST Snapshot")
     selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
-    selected_month = st.slider("Select Month", 1, 12, value=8)
-    month_name = pd.to_datetime(f"2023-{selected_month:02d}-01").strftime("%B")
-    st.caption(f"Viewing: {month_name} {selected_year}")
+    month_dict = {
+        "January": 1, "February": 2, "March": 3, "April": 4,
+        "May": 5, "June": 6, "July": 7, "August": 8,
+        "September": 9, "October": 10, "November": 11, "December": 12
+    }
+    selected_month = st.selectbox("Select Month", list(month_dict.keys()), index=7)
+    month_num = month_dict[selected_month]
 
 
     try:
