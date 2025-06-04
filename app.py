@@ -162,21 +162,87 @@ elif page == "📈 Historical Trends":
     st.plotly_chart(fig_oni, use_container_width=True)
 
 # --- Tab 3: Model Insights ---
+# elif page == "💡 Model Insights":
+#     st.header("💡 Model Insights")
+#     from sklearn.metrics import accuracy_score
+#
+#     accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
+#     st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
+#
+#     st.markdown("### Classification Report")
+#     report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
+#     st.dataframe(pd.DataFrame(report).transpose().round(2))
+#
+#     st.markdown("### Confusion Matrix")
+#     cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
+#     st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
+#
+#     st.markdown("### Feature Importance")
+#     importance_df = pd.DataFrame({
+#         "Feature": feature_cols,
+#         "Importance": model.feature_importances_
+#     }).sort_values("Importance", ascending=False)
+#     fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+#     st.plotly_chart(fig3, use_container_width=True)
+#
+#     st.markdown("### Download Predictions CSV")
+#     st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
+
 elif page == "💡 Model Insights":
     st.header("💡 Model Insights")
-    from sklearn.metrics import accuracy_score
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+    import seaborn as sns
+    import matplotlib.pyplot as plt
 
+    # --- Overall Accuracy ---
     accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
-    st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Overall Accuracy", f"{accuracy * 100:.2f}%")
 
+    # --- Class-wise F1 Scores as Metrics ---
+    report_dict = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
+    class_labels = ["El Niño", "La Niña", "Neutral"]
+
+    for i, label in enumerate(class_labels):
+        col = [col2, col3, col1][i % 3]
+        f1 = report_dict[label]["f1-score"]
+        col.metric(f"{label} F1 Score", f"{f1 * 100:.2f}%")
+
+    # --- Classification Report Table ---
     st.markdown("### Classification Report")
-    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
 
+    main_metrics_df = pd.DataFrame(report_dict).transpose().round(2)
+    main_metrics_df = main_metrics_df.drop(["accuracy", "macro avg", "weighted avg"], errors="ignore")
+    main_metrics_df = main_metrics_df.drop(columns=["support"], errors="ignore")
+
+    rename_map = {
+        "precision": "Positive Predictive Value",
+        "recall": "Sensitivity",
+        "f1-score": "F1 Score"
+    }
+    main_metrics_df = main_metrics_df.rename(columns=rename_map)
+    st.dataframe(main_metrics_df)
+
+    # Optional: Add full report in expander
+    with st.expander("🔍 Full Metrics (incl. macro/weighted avg, support)"):
+        st.dataframe(pd.DataFrame(report_dict).transpose().round(2))
+
+    # --- Confusion Matrix Heatmap ---
     st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
-    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
 
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=class_labels)
+    cm_percent = cm / cm.sum(axis=1, keepdims=True) * 100
+
+    fig_cm, ax = plt.subplots()
+    sns.heatmap(cm_percent, annot=cm, fmt='d', cmap='Blues',
+                xticklabels=class_labels, yticklabels=class_labels,
+                cbar_kws={'label': 'Percentage (%)'})
+    ax.set_xlabel("Predicted Label")
+    ax.set_ylabel("True Label")
+    ax.set_title("Confusion Matrix (Counts with % Background)")
+    st.pyplot(fig_cm)
+
+    # --- Feature Importance ---
     st.markdown("### Feature Importance")
     importance_df = pd.DataFrame({
         "Feature": feature_cols,
@@ -185,8 +251,11 @@ elif page == "💡 Model Insights":
     fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
     st.plotly_chart(fig3, use_container_width=True)
 
+    # --- Download ---
     st.markdown("### Download Predictions CSV")
-    st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="enso_predictions.csv", mime="text/csv")
+    st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False),
+                       file_name="model_enso_predictions.csv", mime="text/csv")
+
 
 # --- Tab 4: Download ---
 elif page == "📤 Custom":
