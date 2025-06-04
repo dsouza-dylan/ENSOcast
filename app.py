@@ -110,6 +110,7 @@ with tab3:
     }).sort_values("Importance", ascending=False)
     fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
     st.plotly_chart(fig3, use_container_width=True)
+
     st.markdown("### Download Predictions CSV")
     st.download_button("📥 Download ENSO Predictions", data=df.to_csv(index=False), file_name="enso_predictions.csv", mime="text/csv")
 
@@ -161,3 +162,7 @@ with tab4:
 
     fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
     st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Download Custom Predictions CSV")
+    st.download_button("📥 Download Custom Predictions", custom_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
+)
