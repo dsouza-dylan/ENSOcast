@@ -111,7 +111,6 @@ with tab2:
 
     fig.update_yaxes(title_text="SST (°C)", range=[24, 30], secondary_y=False)
     fig.update_yaxes(title_text="Climatology (°C)", range=[24, 30], secondary_y=True, showticklabels = False)
-    st.plotly_chart(fig, use_container_width=True)
 
     climatology_min = df["SST_Climatology"].min()
     climatology_max = df["SST_Climatology"].max()
@@ -121,6 +120,7 @@ with tab2:
 
     fig.add_hline(y=climatology_max, line_dash="dot", line_color="red",
                   annotation_text="Climatology Max", annotation_position="top left")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 
@@ -130,9 +130,60 @@ with tab2:
     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold", annotation_position="top right")
     st.plotly_chart(fig_oni, use_container_width=True)
 
-    st.markdown("### Predicted ENSO Phase")
-    fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
-    st.plotly_chart(fig2, use_container_width=True)
+    # st.markdown("### Predicted ENSO Phase")
+    # fig2 = px.line(df, x="Date", y="Predicted_Phase", color_discrete_sequence=["#e74c3c", "#3498db", "#95a5a6"])
+    # st.plotly_chart(fig2, use_container_width=True)
+
+    # Map ENSO phases to values
+    enso_label_map = {"El Niño": 1, "La Niña": -1, "Neutral": 0}
+    df["ENSO_Num"] = df["ENSO_Label"].map(enso_label_map)
+    import plotly.graph_objects as go
+
+    st.markdown("### ENSO Phase Timeline")
+
+    figx = go.Figure()
+
+    figx.add_trace(go.Scatter(
+        x=df["Date"],
+        y=df["ENSO_Num"],
+        mode="lines",
+        line=dict(shape="hv", width=0),  # Step line with filled areas only
+        fill="tozeroy",
+        fillcolor="rgba(231, 76, 60, 0.6)",  # Red for El Niño
+        name="El Niño",
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+    figx.add_trace(go.Scatter(
+        x=df["Date"],
+        y=[-1 if p == "La Niña" else None for p in df["ENSO_Label"]],
+        mode="markers",
+        marker=dict(color="#3498db", size=4),
+        name="La Niña"
+    ))
+
+    figx.add_trace(go.Scatter(
+        x=df["Date"],
+        y=[0 if p == "Neutral" else None for p in df["ENSO_Label"]],
+        mode="markers",
+        marker=dict(color="#95a5a6", size=4),
+        name="Neutral"
+    ))
+
+    figx.update_layout(
+        yaxis=dict(
+            tickvals=[-1, 0, 1],
+            ticktext=["La Niña", "Neutral", "El Niño"],
+            title="ENSO Phase"
+        ),
+        xaxis_title="Date",
+        template="plotly_dark",
+        showlegend=True
+    )
+
+    st.plotly_chart(figx, use_container_width=True)
+
 
 # --- Tab 3: Model Insights ---
 with tab3:
