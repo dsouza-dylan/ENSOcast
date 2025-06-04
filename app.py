@@ -43,8 +43,8 @@ df["Predicted_Phase"] = [label_map[i] for i in y_pred]
 df["True_Phase"] = [label_map[i] for i in y_true]
 
 # --- Header ---
-st.title("🌊 ENSOcast")
-st.subheader("Track, Understand, and Forecast ENSO Events")
+st.title("🌊 ENSOcast - Forecast El Niño–Southern Oscillation Events")
+# st.subheader("Track, Understand, and Forecast ENSO Events")
 
 # --- Tabs ---
 # tab1, tab2, tab3, tab4 = st.tabs(["🌡 SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"])
