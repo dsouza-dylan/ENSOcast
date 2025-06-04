@@ -70,10 +70,12 @@ if page == "🌡 Global SST Snapshot":
 
     try:
         sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
-        fig, ax = plt.subplots(figsize=(12, 4))
+        fig, ax = plt.subplots(figsize=(12, 10))
         sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
-        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=0.3))
-        ax.text(190, 12, 'Niño 3.4 Region', color='black')
+        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
+        ax.text(189, 8, 'Niño 3.4 Region', color='black')
+        ax.set_xlabel("Longitude [°E]")
+        ax.set_ylabel("Latitude [°N]")
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
