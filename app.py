@@ -152,7 +152,7 @@ elif page == "📈 Historical Trends":
 
     # --- ONI Timeline ---
     st.markdown("### Oceanic Niño Index (ONI) Timeline")
-    fig_oni = px.line(df_filtered, x="Date", y="ONI")
+    fig_oni = px.line(df_filtered, x="Date", y="Oceanic Niño Index")
     fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
                       annotation_text="El Niño Threshold", annotation_position="top right")
     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
