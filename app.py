@@ -51,13 +51,13 @@ st.subheader("Track, Understand, and Forecast ENSO Events")
 st.sidebar.title("📂 ENSOcast Navigation")
 page = st.sidebar.radio(
     "Go to",
-    ["🌡 SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"],
+    ["🌡 Global SST Snapshot", "📈 Trends", "🔎 Model Insights", "📤 Download"],
     index=0
 )
 # --- Tab 1: SST Snapshot ---
 if page == "🌡 Global SST Snapshot":
     st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
-    st.markdown("### Global SST Snapshot")
+    # st.markdown("### Global SST Snapshot")
     selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
     month_dict = {
         "January": 1, "February": 2, "March": 3, "April": 4,
@@ -72,8 +72,8 @@ if page == "🌡 Global SST Snapshot":
         sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
         fig, ax = plt.subplots(figsize=(12, 4))
         sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
-        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=2))
-        ax.text(192, 6, 'Niño 3.4 Region', color='black')
+        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=0.3))
+        ax.text(190, 12, 'Niño 3.4 Region', color='black')
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
