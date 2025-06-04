@@ -90,6 +90,58 @@ with tab2:
 
 # --- Tab 3: Model Insights ---
 with tab3:
+    from sklearn.metrics import accuracy_score
+
+    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
+    st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
+
+    st.markdown("### Custom Model Evaluation")
+
+    # --- User Filters ---
+    years = st.slider("Select Year Range", 1981, 2025, (2000, 2020))
+    selected_phases = st.multiselect("Select ENSO Phases", ["El Niño", "La Niña", "Neutral"], default=["El Niño", "La Niña", "Neutral"])
+
+    filtered_df = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["True_Phase"].isin(selected_phases))
+    ]
+
+    # --- Prepare Features & Labels ---
+    X_custom = filtered_df[feature_cols]
+    y_custom = filtered_df["True_Phase"]
+
+    # --- Train/Test Split ---
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X_custom, y_custom, test_size=0.3, shuffle=False)
+
+    # --- Train Custom Model ---
+    from sklearn.ensemble import RandomForestClassifier
+    custom_model = RandomForestClassifier(random_state=42)
+    custom_model.fit(X_train, y_train)
+    y_pred_custom = custom_model.predict(X_test)
+
+    # --- Accuracy ---
+    custom_accuracy = accuracy_score(y_test, y_pred_custom)
+    st.metric("Custom Model Accuracy", f"{custom_accuracy * 100:.2f}%")
+
+    st.markdown("### Classification Report")
+    report = classification_report(y_test, y_pred_custom, output_dict=True)
+    st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    st.markdown("### Confusion Matrix")
+    cm = confusion_matrix(y_test, y_pred_custom, labels=["El Niño", "La Niña", "Neutral"])
+    st.dataframe(pd.DataFrame(cm, index=["True El Niño", "True La Niña", "True Neutral"],
+                              columns=["Pred El Niño", "Pred La Niña", "Pred Neutral"]))
+
+    importance_df = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": custom_model.feature_importances_
+    }).sort_values("Importance", ascending=False)
+
+    fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+    st.plotly_chart(fig, use_container_width=True)
+
     st.markdown("### Classification Report")
     report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
     st.dataframe(pd.DataFrame(report).transpose().round(2))
