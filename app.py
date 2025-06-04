@@ -157,9 +157,10 @@ elif page == "📈 Historical Trends":
         template="plotly_dark",
         margin=dict(t=30, b=30)
     )
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Neutral Line", annotation_position="top right")
-    fig_soi.add_hrect(y0=7, y1=20, line_width=0, fillcolor="blue", opacity=0.1)
-    fig_soi.add_hrect(y0=-20, y1=-7, line_width=0, fillcolor="red", opacity=0.1)
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
+    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
+    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
     st.plotly_chart(fig_soi, use_container_width=True)
 
 elif page == "💡 Model Insights":
