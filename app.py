@@ -60,9 +60,15 @@ def load_sst_dataset():
 def generate_future_features(df, months_ahead=12):
     """Generate features for future predictions using trend extrapolation and seasonality"""
     last_date = df["Date"].max()
-    # Use pandas offset instead of timedelta for timestamp arithmetic
-    next_month = last_date + pd.DateOffset(months=1)
-    future_dates = pd.date_range(start=next_month, periods=months_ahead, freq='MS')
+
+    # Create future dates - ensure we're working with proper datetime objects
+    future_dates = []
+    current_date = pd.Timestamp(last_date)
+
+    for i in range(1, months_ahead + 1):
+        # Use pd.DateOffset for proper date arithmetic
+        next_date = current_date + pd.DateOffset(months=i)
+        future_dates.append(next_date)
 
     future_data = []
 
@@ -71,12 +77,18 @@ def generate_future_features(df, months_ahead=12):
         recent_data = df.tail(6)
 
         # Simple trend extrapolation for SST_Anomaly
-        sst_trend = np.polyfit(range(len(recent_data)), recent_data["SST_Anomaly"], 1)
-        sst_forecast = sst_trend[0] * (len(recent_data) + i) + sst_trend[1]
+        if len(recent_data) > 1:
+            sst_trend = np.polyfit(range(len(recent_data)), recent_data["SST_Anomaly"].values, 1)
+            sst_forecast = sst_trend[0] * (len(recent_data) + i) + sst_trend[1]
+        else:
+            sst_forecast = recent_data["SST_Anomaly"].iloc[-1]
 
         # SOI trend extrapolation
-        soi_trend = np.polyfit(range(len(recent_data)), recent_data["SOI"], 1)
-        soi_forecast = soi_trend[0] * (len(recent_data) + i) + soi_trend[1]
+        if len(recent_data) > 1:
+            soi_trend = np.polyfit(range(len(recent_data)), recent_data["SOI"].values, 1)
+            soi_forecast = soi_trend[0] * (len(recent_data) + i) + soi_trend[1]
+        else:
+            soi_forecast = recent_data["SOI"].iloc[-1]
 
         # Add some seasonality and noise
         month = date.month
@@ -88,10 +100,11 @@ def generate_future_features(df, months_ahead=12):
 
         # Create lag features (using forecasted values for recent lags)
         if i == 0:
-            sst_lag_1 = df["SST_Anomaly"].iloc[-1]
+            # Use last available values from the dataset
+            sst_lag_1 = df["SST_Anomaly"].iloc[-1] if len(df) > 0 else 0
             sst_lag_2 = df["SST_Anomaly"].iloc[-2] if len(df) > 1 else sst_lag_1
             sst_lag_3 = df["SST_Anomaly"].iloc[-3] if len(df) > 2 else sst_lag_2
-            soi_lag_1 = df["SOI"].iloc[-1]
+            soi_lag_1 = df["SOI"].iloc[-1] if len(df) > 0 else 0
             soi_lag_2 = df["SOI"].iloc[-2] if len(df) > 1 else soi_lag_1
             soi_lag_3 = df["SOI"].iloc[-3] if len(df) > 2 else soi_lag_2
         else:
@@ -109,16 +122,16 @@ def generate_future_features(df, months_ahead=12):
 
         future_data.append({
             "Date": date,
-            "SST_Anomaly": sst_forecast,
-            "SOI": soi_forecast,
-            "SST_Anomaly_lag_1": sst_lag_1,
-            "SST_Anomaly_lag_2": sst_lag_2,
-            "SST_Anomaly_lag_3": sst_lag_3,
-            "SOI_lag_1": soi_lag_1,
-            "SOI_lag_2": soi_lag_2,
-            "SOI_lag_3": soi_lag_3,
-            "month_sin": month_sin,
-            "month_cos": month_cos
+            "SST_Anomaly": float(sst_forecast),  # Ensure it's a scalar
+            "SOI": float(soi_forecast),  # Ensure it's a scalar
+            "SST_Anomaly_lag_1": float(sst_lag_1),
+            "SST_Anomaly_lag_2": float(sst_lag_2),
+            "SST_Anomaly_lag_3": float(sst_lag_3),
+            "SOI_lag_1": float(soi_lag_1),
+            "SOI_lag_2": float(soi_lag_2),
+            "SOI_lag_3": float(soi_lag_3),
+            "month_sin": float(month_sin),
+            "month_cos": float(month_cos)
         })
 
     return pd.DataFrame(future_data)
@@ -279,8 +292,12 @@ def create_forecast_visualization(df, model, months_ahead=12):
     return fig, future_df
 
 # Load data
-df, model = load_data()
-sst_ds = load_sst_dataset()
+try:
+    df, model = load_data()
+    sst_ds = load_sst_dataset()
+except Exception as e:
+    st.error(f"Error loading data: {str(e)}")
+    st.stop()
 
 # Main UI
 st.title("🌊 ENSOcast: Understanding & Predicting Climate Patterns")
@@ -412,39 +429,44 @@ elif page == "🔮 Future Predictions":
         st.markdown("🔴 Low (<50%)")
 
     # Create and show forecast
-    forecast_fig, future_df = create_forecast_visualization(df, model, months_ahead)
-    st.plotly_chart(forecast_fig, use_container_width=True)
+    try:
+        forecast_fig, future_df = create_forecast_visualization(df, model, months_ahead)
+        st.plotly_chart(forecast_fig, use_container_width=True)
 
-    # Forecast summary
-    st.markdown("### 📋 Forecast Summary")
+        # Forecast summary
+        st.markdown("### 📋 Forecast Summary")
 
-    # Group predictions by phase
-    phase_counts = future_df["Predicted_Phase"].value_counts()
-    avg_confidence = future_df["Confidence"].mean()
+        # Group predictions by phase
+        phase_counts = future_df["Predicted_Phase"].value_counts()
+        avg_confidence = future_df["Confidence"].mean()
 
-    col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
+        with col1:
+            st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
 
-    for i, (phase, count) in enumerate(phase_counts.items()):
-        with [col2, col3, col4][i]:
-            st.metric(f"{phase} Months", f"{count}/{months_ahead}")
+        for i, (phase, count) in enumerate(phase_counts.items()):
+            if i < 3:  # Only show first 3 phases
+                with [col2, col3, col4][i]:
+                    st.metric(f"{phase} Months", f"{count}/{months_ahead}")
 
-    # Detailed forecast table
-    st.markdown("### 📅 Monthly Forecast Details")
+        # Detailed forecast table
+        st.markdown("### 📅 Monthly Forecast Details")
 
-    display_df = future_df[["Date", "Predicted_Phase", "Confidence", "SST_Anomaly"]].copy()
-    display_df["Date"] = display_df["Date"].dt.strftime("%Y-%m")
-    display_df["Confidence"] = display_df["Confidence"].apply(lambda x: f"{x:.1%}")
-    display_df["SST_Anomaly"] = display_df["SST_Anomaly"].round(2)
-    display_df.columns = ["Month", "Predicted Phase", "Confidence", "SST Anomaly (°C)"]
+        display_df = future_df[["Date", "Predicted_Phase", "Confidence", "SST_Anomaly"]].copy()
+        display_df["Date"] = display_df["Date"].dt.strftime("%Y-%m")
+        display_df["Confidence"] = display_df["Confidence"].apply(lambda x: f"{x:.1%}")
+        display_df["SST_Anomaly"] = display_df["SST_Anomaly"].round(2)
+        display_df.columns = ["Month", "Predicted Phase", "Confidence", "SST Anomaly (°C)"]
 
-    st.dataframe(display_df, use_container_width=True)
+        st.dataframe(display_df, use_container_width=True)
 
-    # Download forecast
-    csv = future_df.to_csv(index=False)
-    st.download_button("📥 Download Forecast Data", csv, "enso_forecast.csv", "text/csv")
+        # Download forecast
+        csv = future_df.to_csv(index=False)
+        st.download_button("📥 Download Forecast Data", csv, "enso_forecast.csv", "text/csv")
+
+    except Exception as e:
+        st.error(f"Error generating forecast: {str(e)}")
 
     st.warning("⚠️ **Important:** These are model predictions based on historical patterns. Actual conditions may vary. Use for planning purposes only.")
 
@@ -455,7 +477,9 @@ elif page == "📈 Historical Analysis":
     # Time period selection
     col1, col2 = st.columns(2)
     with col1:
-        years = st.slider("Year Range", 1982, 2025, (2000, 2020))
+        min_year = int(df["Date"].dt.year.min())
+        max_year = int(df["Date"].dt.year.max())
+        years = st.slider("Year Range", min_year, max_year, (max_year-20, max_year))
     with col2:
         selected_phases = st.multiselect("ENSO Phases",
                                        ["La Niña", "Neutral", "El Niño"],
