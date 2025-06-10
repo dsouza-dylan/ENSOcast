@@ -46,7 +46,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
-    ["🌡 Global SST Snapshot", "📈 Historical Trends", "💡 Model Insights", "🛠 Interactive Prediction Tool"],
+    ["🌡 Global SST Snapshot", "📈 Historical Trends", "🛠 Interactive Prediction Tool"],
     index=0
 )
 st.sidebar.markdown("### ")
@@ -162,32 +162,6 @@ elif page == "📈 Historical Trends":
     fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
     fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
     st.plotly_chart(fig_soi, use_container_width=True)
-
-elif page == "💡 Model Insights":
-    st.header("💡 Model Insights")
-    from sklearn.metrics import accuracy_score
-
-    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
-    st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
-
-    st.markdown("### Classification Report")
-    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
-    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
-
-    st.markdown("### Feature Importance")
-    importance_df = pd.DataFrame({
-        "Feature": feature_cols,
-        "Importance": model.feature_importances_
-    }).sort_values("Importance", ascending=False)
-    fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
-    st.plotly_chart(fig3, use_container_width=True)
-
-    st.markdown("### Download ENSO Predictions Results")
-    st.download_button("📥 Download CSV", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
 
 elif page == "🛠 Interactive Prediction Tool":
     st.header("🛠 Interactive Prediction Tool")
