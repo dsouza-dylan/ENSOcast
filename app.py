@@ -3,8 +3,15 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import joblib
+import xarray as xr
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -19,179 +26,267 @@ FEATURE_COLS = [
 ]
 LABEL_MAP = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
 PHASE_COLORS = {"La Niña": "#3498db", "Neutral": "#95a5a6", "El Niño": "#e74c3c"}
+PHASE_DESCRIPTIONS = {
+    "La Niña": "Cooler than normal sea surface temperatures in the central and eastern tropical Pacific Ocean",
+    "Neutral": "Normal sea surface temperatures - neither El Niño nor La Niña conditions",
+    "El Niño": "Warmer than normal sea surface temperatures in the central and eastern tropical Pacific Ocean"
+}
 
 @st.cache_data
 def load_data():
-    """Load and preprocess data"""
-    df = pd.read_csv("merged_enso.csv")
-    df['Date'] = pd.to_datetime(df['Date'])
-
-    # Load model and make predictions
+    """Load and preprocess all data"""
+    df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
     model = joblib.load("enso_model_a_baseline.pkl")
-    X = df[FEATURE_COLS]
-    y_pred = model.predict(X)
 
     # Add predictions to dataframe
+    X = df[FEATURE_COLS]
+    y_pred = model.predict(X)
     df["Predicted_Phase"] = [LABEL_MAP[i] for i in y_pred]
     df["True_Phase"] = [LABEL_MAP[i] for i in df["ENSO_Label"]]
 
     return df, model
 
+@st.cache_data
+def load_sst_dataset():
+    """Load SST dataset"""
+    try:
+        url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
+        ds = xr.open_dataset(url)
+        ds["time"] = pd.to_datetime(ds["time"].values)
+        return ds
+    except:
+        return None
+
 def generate_future_features(df, months_ahead=12):
-    """Generate simple future predictions using recent trends"""
-    last_date = df["Date"].iloc[-1]
+    """Generate features for future predictions using trend extrapolation and seasonality"""
+    last_date = df["Date"].max()
 
-    # Get recent trends (last 6 months)
-    recent = df.tail(6)
+    # Create future dates - ensure we're working with proper datetime objects
+    future_dates = []
+    current_date = pd.Timestamp(last_date)
 
-    # Simple linear trend for key variables
-    sst_trend = np.polyfit(range(len(recent)), recent["SST_Anomaly"].values, 1)[0]
-    soi_trend = np.polyfit(range(len(recent)), recent["SOI"].values, 1)[0]
+    for i in range(1, months_ahead + 1):
+        # Use pd.DateOffset for proper date arithmetic
+        next_date = current_date + pd.DateOffset(months=i)
+        future_dates.append(next_date)
 
     future_data = []
 
-    for i in range(1, months_ahead + 1):
-        # Calculate future date
-        future_date = last_date + pd.DateOffset(months=i)
-        month = future_date.month
+    for i, date in enumerate(future_dates):
+        # Get recent trend (last 6 months)
+        recent_data = df.tail(6)
 
-        # Simple trend projection with seasonal adjustment
-        seasonal = 0.2 * np.sin(2 * np.pi * month / 12)
+        # Simple trend extrapolation for SST_Anomaly
+        if len(recent_data) > 1:
+            sst_trend = np.polyfit(range(len(recent_data)), recent_data["SST_Anomaly"].values, 1)
+            sst_forecast = sst_trend[0] * (len(recent_data) + i) + sst_trend[1]
+        else:
+            sst_forecast = recent_data["SST_Anomaly"].iloc[-1]
+
+        # SOI trend extrapolation
+        if len(recent_data) > 1:
+            soi_trend = np.polyfit(range(len(recent_data)), recent_data["SOI"].values, 1)
+            soi_forecast = soi_trend[0] * (len(recent_data) + i) + soi_trend[1]
+        else:
+            soi_forecast = recent_data["SOI"].iloc[-1]
+
+        # Add some seasonality and noise
+        month = date.month
+        seasonal_factor = 0.2 * np.sin(2 * np.pi * month / 12)
         noise = np.random.normal(0, 0.1)
 
-        sst_forecast = df["SST_Anomaly"].iloc[-1] + sst_trend * i + seasonal + noise
-        soi_forecast = df["SOI"].iloc[-1] + soi_trend * i + seasonal + noise
+        sst_forecast += seasonal_factor + noise
+        soi_forecast += seasonal_factor + noise
 
-        # Create lag features using recent history or forecasted values
-        if i == 1:
-            sst_lags = [df["SST_Anomaly"].iloc[-j] for j in range(1, 4)]
-            soi_lags = [df["SOI"].iloc[-j] for j in range(1, 4)]
+        # Create lag features (using forecasted values for recent lags)
+        if i == 0:
+            # Use last available values from the dataset
+            sst_lag_1 = df["SST_Anomaly"].iloc[-1] if len(df) > 0 else 0
+            sst_lag_2 = df["SST_Anomaly"].iloc[-2] if len(df) > 1 else sst_lag_1
+            sst_lag_3 = df["SST_Anomaly"].iloc[-3] if len(df) > 2 else sst_lag_2
+            soi_lag_1 = df["SOI"].iloc[-1] if len(df) > 0 else 0
+            soi_lag_2 = df["SOI"].iloc[-2] if len(df) > 1 else soi_lag_1
+            soi_lag_3 = df["SOI"].iloc[-3] if len(df) > 2 else soi_lag_2
         else:
-            # Use previously forecasted values for lags
-            prev_forecasts = [item for item in future_data if item]
-            sst_lags = []
-            soi_lags = []
-            for lag in range(1, 4):
-                if i - lag <= 0:
-                    sst_lags.append(df["SST_Anomaly"].iloc[-(lag-i+1)])
-                    soi_lags.append(df["SOI"].iloc[-(lag-i+1)])
-                else:
-                    sst_lags.append(prev_forecasts[i-lag-1]["SST_Anomaly"])
-                    soi_lags.append(prev_forecasts[i-lag-1]["SOI"])
+            # Use previously forecasted values as lags
+            sst_lag_1 = future_data[i-1]["SST_Anomaly"] if i > 0 else sst_forecast
+            sst_lag_2 = future_data[i-2]["SST_Anomaly"] if i > 1 else sst_lag_1
+            sst_lag_3 = future_data[i-3]["SST_Anomaly"] if i > 2 else sst_lag_2
+            soi_lag_1 = future_data[i-1]["SOI"] if i > 0 else soi_forecast
+            soi_lag_2 = future_data[i-2]["SOI"] if i > 1 else soi_lag_1
+            soi_lag_3 = future_data[i-3]["SOI"] if i > 2 else soi_lag_2
 
         # Seasonal encoding
         month_sin = np.sin(2 * np.pi * month / 12)
         month_cos = np.cos(2 * np.pi * month / 12)
 
         future_data.append({
-            "Date": future_date,
-            "SST_Anomaly": sst_forecast,
-            "SOI": soi_forecast,
-            "SOI_lag_1": soi_lags[0],
-            "SOI_lag_2": soi_lags[1] if len(soi_lags) > 1 else soi_lags[0],
-            "SOI_lag_3": soi_lags[2] if len(soi_lags) > 2 else soi_lags[0],
-            "SST_Anomaly_lag_1": sst_lags[0],
-            "SST_Anomaly_lag_2": sst_lags[1] if len(sst_lags) > 1 else sst_lags[0],
-            "SST_Anomaly_lag_3": sst_lags[2] if len(sst_lags) > 2 else sst_lags[0],
-            "month_sin": month_sin,
-            "month_cos": month_cos
+            "Date": date,
+            "SST_Anomaly": float(sst_forecast),  # Ensure it's a scalar
+            "SOI": float(soi_forecast),  # Ensure it's a scalar
+            "SST_Anomaly_lag_1": float(sst_lag_1),
+            "SST_Anomaly_lag_2": float(sst_lag_2),
+            "SST_Anomaly_lag_3": float(sst_lag_3),
+            "SOI_lag_1": float(soi_lag_1),
+            "SOI_lag_2": float(soi_lag_2),
+            "SOI_lag_3": float(soi_lag_3),
+            "month_sin": float(month_sin),
+            "month_cos": float(month_cos)
         })
 
     return pd.DataFrame(future_data)
 
-def create_phase_cards():
-    """Create educational cards for ENSO phases"""
-    descriptions = {
-        "La Niña": "Cooler than normal sea surface temperatures. More hurricanes, cooler weather.",
-        "Neutral": "Normal sea surface temperatures. Typical seasonal weather patterns.",
-        "El Niño": "Warmer than normal sea surface temperatures. Fewer hurricanes, warmer weather."
-    }
+def create_enso_explanation():
+    """Create educational content about ENSO"""
+    st.markdown("""
+    ## 🌍 What is ENSO?
+    
+    **El Niño-Southern Oscillation (ENSO)** is one of the most important climate patterns on Earth, affecting weather worldwide.
+    
+    ### The Three Phases:
+    """)
 
-    st.markdown("### The Three ENSO Phases:")
-    cols = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-    for i, (phase, desc) in enumerate(descriptions.items()):
-        with cols[i]:
-            st.markdown(f"""
-            <div style="background: {PHASE_COLORS[phase]}20; padding: 20px; border-radius: 10px; 
-                        border-left: 5px solid {PHASE_COLORS[phase]}; height: 150px;">
-                <h4 style="color: {PHASE_COLORS[phase]}; margin-top: 0;">{phase}</h4>
-                <p style="margin-bottom: 0;">{desc}</p>
-            </div>
-            """, unsafe_allow_html=True)
+    with col1:
+        st.markdown(f"""
+        <div style="background-color: {PHASE_COLORS['La Niña']}20; padding: 15px; border-radius: 10px; border-left: 5px solid {PHASE_COLORS['La Niña']};">
+        <h4 style="color: {PHASE_COLORS['La Niña']};">🌊 La Niña</h4>
+        <p>{PHASE_DESCRIPTIONS['La Niña']}</p>
+        <p><strong>Effects:</strong> More hurricanes, cooler temperatures, increased rainfall in some regions</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div style="background-color: {PHASE_COLORS['Neutral']}20; padding: 15px; border-radius: 10px; border-left: 5px solid {PHASE_COLORS['Neutral']};">
+        <h4 style="color: {PHASE_COLORS['Neutral']};">⚖️ Neutral</h4>
+        <p>{PHASE_DESCRIPTIONS['Neutral']}</p>
+        <p><strong>Effects:</strong> Typical weather patterns, seasonal variations within normal ranges</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div style="background-color: {PHASE_COLORS['El Niño']}20; padding: 15px; border-radius: 10px; border-left: 5px solid {PHASE_COLORS['El Niño']};">
+        <h4 style="color: {PHASE_COLORS['El Niño']};">🔥 El Niño</h4>
+        <p>{PHASE_DESCRIPTIONS['El Niño']}</p>
+        <p><strong>Effects:</strong> Fewer hurricanes, warmer temperatures, drought in some areas, floods in others</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 def show_current_status(df):
-    """Display current ENSO conditions"""
-    latest = df.iloc[-1]
-    date_str = latest["Date"].strftime("%B %Y")
+    """Show current ENSO status"""
+    latest_data = df.iloc[-1]
+    current_phase = latest_data["True_Phase"]
+    current_date = latest_data["Date"].strftime("%B %Y")
 
-    st.markdown(f"## 📊 Current Status ({date_str})")
+    st.markdown(f"## 📊 Current Status ({current_date})")
 
-    cols = st.columns(4)
-    metrics = [
-        ("Current Phase", latest["True_Phase"], None),
-        ("SST Anomaly", f"{latest['SST_Anomaly']:.2f}°C", None),
-        ("ONI Value", f"{latest['ONI']:.2f}", None),
-        ("SOI Value", f"{latest['SOI']:.2f}", None)
-    ]
+    col1, col2, col3, col4 = st.columns(4)
 
-    for col, (label, value, delta) in zip(cols, metrics):
-        with col:
-            st.metric(label, value, delta)
+    with col1:
+        st.metric(
+            "Current Phase",
+            current_phase,
+            help=PHASE_DESCRIPTIONS[current_phase]
+        )
 
-def create_forecast_plot(df, model, months_ahead):
-    """Create forecast visualization"""
-    # Generate future predictions
+    with col2:
+        st.metric(
+            "SST Anomaly",
+            f"{latest_data['SST_Anomaly']:.2f}°C",
+            help="Difference from normal sea surface temperature"
+        )
+
+    with col3:
+        st.metric(
+            "ONI Value",
+            f"{latest_data['ONI']:.2f}",
+            help="Oceanic Niño Index - key ENSO indicator"
+        )
+
+    with col4:
+        st.metric(
+            "SOI Value",
+            f"{latest_data['SOI']:.2f}",
+            help="Southern Oscillation Index - atmospheric pressure difference"
+        )
+
+def create_forecast_visualization(df, model, months_ahead=12):
+    """Create future predictions with confidence intervals"""
+    # Generate future features
     future_df = generate_future_features(df, months_ahead)
+
+    # Make predictions
     X_future = future_df[FEATURE_COLS]
-    predictions = model.predict(X_future)
-    probabilities = model.predict_proba(X_future)
+    future_predictions = model.predict(X_future)
+    future_probabilities = model.predict_proba(X_future)
 
-    future_df["Predicted_Phase"] = [LABEL_MAP[i] for i in predictions]
-    future_df["Confidence"] = np.max(probabilities, axis=1)
+    # Convert to readable format
+    future_df["Predicted_Phase"] = [LABEL_MAP[i] for i in future_predictions]
+    future_df["Confidence"] = np.max(future_probabilities, axis=1)
 
-    # Combine recent historical with forecast
-    recent_hist = df.tail(24)[["Date", "True_Phase", "ONI"]].copy()
-    recent_hist["Type"] = "Historical"
+    # Combine historical and future data for visualization
+    historical_recent = df.tail(24)[["Date", "True_Phase", "SST_Anomaly", "ONI"]].copy()
+    historical_recent["Type"] = "Historical"
 
-    forecast_data = future_df[["Date", "Predicted_Phase", "SST_Anomaly"]].copy()
-    forecast_data.rename(columns={"Predicted_Phase": "True_Phase", "SST_Anomaly": "ONI"}, inplace=True)
-    forecast_data["Type"] = "Forecast"
+    future_viz = future_df[["Date", "Predicted_Phase", "SST_Anomaly"]].copy()
+    future_viz.rename(columns={"Predicted_Phase": "True_Phase"}, inplace=True)
+    future_viz["ONI"] = future_viz["SST_Anomaly"]  # Approximate for visualization
+    future_viz["Type"] = "Forecast"
 
-    combined = pd.concat([recent_hist, forecast_data], ignore_index=True)
+    combined_df = pd.concat([historical_recent, future_viz], ignore_index=True)
 
-    # Create plot
+    # Create forecast plot
     fig = go.Figure()
 
+    # Historical data
+    hist_data = combined_df[combined_df["Type"] == "Historical"]
     for phase in ["La Niña", "Neutral", "El Niño"]:
-        # Historical data
-        hist_data = combined[(combined["Type"] == "Historical") & (combined["True_Phase"] == phase)]
-        if not hist_data.empty:
+        phase_data = hist_data[hist_data["True_Phase"] == phase]
+        if not phase_data.empty:
             fig.add_trace(go.Scatter(
-                x=hist_data["Date"], y=hist_data["ONI"],
-                mode='markers', name=f"{phase} (Historical)",
-                marker=dict(color=PHASE_COLORS[phase], size=8)
+                x=phase_data["Date"],
+                y=phase_data["ONI"],
+                mode='markers',
+                name=f"{phase} (Historical)",
+                marker=dict(color=PHASE_COLORS[phase], size=8),
+                showlegend=True
             ))
 
-        # Forecast data
-        forecast_data = combined[(combined["Type"] == "Forecast") & (combined["True_Phase"] == phase)]
-        if not forecast_data.empty:
+    # Future predictions
+    future_data = combined_df[combined_df["Type"] == "Forecast"]
+    for phase in ["La Niña", "Neutral", "El Niño"]:
+        phase_data = future_data[future_data["True_Phase"] == phase]
+        if not phase_data.empty:
             fig.add_trace(go.Scatter(
-                x=forecast_data["Date"], y=forecast_data["ONI"],
-                mode='markers+lines', name=f"{phase} (Forecast)",
+                x=phase_data["Date"],
+                y=phase_data["ONI"],
+                mode='markers+lines',
+                name=f"{phase} (Forecast)",
                 marker=dict(color=PHASE_COLORS[phase], size=10, symbol='diamond'),
-                line=dict(color=PHASE_COLORS[phase], dash='dash')
+                line=dict(color=PHASE_COLORS[phase], dash='dash'),
+                showlegend=True
             ))
 
-    # Add threshold lines and current date marker
+    # Add threshold lines
     fig.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño Threshold")
     fig.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña Threshold")
-    fig.add_vline(x=df["Date"].iloc[-1], line_dash="solid", line_color="black", annotation_text="Now")
+    fig.add_hline(y=0, line_dash="solid", line_color="gray", opacity=0.3)
+
+    # Add vertical line separating historical from forecast
+    current_date = df["Date"].max()
+    fig.add_vline(x=current_date, line_dash="solid", line_color="black",
+                  annotation_text="Current", annotation_position="top")
 
     fig.update_layout(
-        title="ENSO Forecast: Recent History + Future Predictions",
-        xaxis_title="Date", yaxis_title="ENSO Index",
-        template="plotly_white", height=500
+        title="ENSO Forecast: Historical Context + Future Predictions",
+        xaxis_title="Date",
+        yaxis_title="ENSO Index",
+        template="plotly_white",
+        height=500,
+        hovermode='x unified'
     )
 
     return fig, future_df
@@ -199,193 +294,313 @@ def create_forecast_plot(df, model, months_ahead):
 # Load data
 try:
     df, model = load_data()
+    sst_ds = load_sst_dataset()
 except Exception as e:
-    st.error(f"Error loading data: {e}")
+    st.error(f"Error loading data: {str(e)}")
     st.stop()
 
-# Main App
-st.title("🌊 ENSOcast: Climate Pattern Forecasting")
-st.markdown("*Understanding and predicting El Niño, La Niña, and Neutral conditions*")
+# Main UI
+st.title("🌊 ENSOcast: Understanding & Predicting Climate Patterns")
+st.markdown("*Your guide to El Niño, La Niña, and climate forecasting*")
 
-# Sidebar
-st.sidebar.title("🧭 Navigation")
-pages = ["🎓 Learn", "📊 Current Status", "🔮 Forecast", "📈 History", "⚙️ Model Info"]
-page = st.sidebar.selectbox("Go to:", pages)
+# Sidebar Navigation
+st.sidebar.title("🧭 Navigate the Story")
+st.sidebar.markdown("---")
+
+pages = [
+    "🎓 Learn About ENSO",
+    "📊 Current Conditions",
+    "🔮 Future Predictions",
+    "📈 Historical Analysis",
+    "⚙️ Model Performance"
+]
+
+page = st.sidebar.radio("Choose your journey:", pages, index=0)
+
+# Add helpful sidebar info
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💡 Quick Tips")
+if page == "🎓 Learn About ENSO":
+    st.sidebar.info("Start here to understand what ENSO is and why it matters for global weather!")
+elif page == "📊 Current Conditions":
+    st.sidebar.info("See what's happening right now in the Pacific Ocean.")
+elif page == "🔮 Future Predictions":
+    st.sidebar.info("Our AI model predicts ENSO conditions up to 12 months ahead.")
+elif page == "📈 Historical Analysis":
+    st.sidebar.info("Explore decades of climate data to understand patterns.")
+elif page == "⚙️ Model Performance":
+    st.sidebar.info("See how accurate our predictions are.")
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Data: {len(df)} months of ENSO observations")
+st.sidebar.markdown("*Made by Dylan Dsouza*")
 
-# Page routing
-if page == "🎓 Learn":
-    st.markdown("## 🌍 What is ENSO?")
-    st.markdown("""
-    **El Niño-Southern Oscillation (ENSO)** is a climate pattern that affects weather worldwide 
-    through changes in Pacific Ocean temperatures and atmospheric pressure.
-    """)
+# Page Content
+if page == "🎓 Learn About ENSO":
+    create_enso_explanation()
 
-    create_phase_cards()
+    st.markdown("---")
+    st.markdown("### 🎯 Why Does This Matter?")
 
-    st.markdown("### 🎯 Why This Matters")
-    st.markdown("""
-    - **Weather**: Affects global temperature and precipitation patterns
-    - **Agriculture**: Influences crop yields and growing conditions  
-    - **Disasters**: Changes hurricane frequency and drought/flood risks
-    - **Economy**: Impacts fishing, energy, and agricultural markets
-    """)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        **Global Impact:**
+        - Affects weather patterns worldwide
+        - Influences agriculture and food security
+        - Impacts natural disasters (hurricanes, droughts, floods)
+        - Economic effects on fishing, tourism, energy
+        """)
 
-elif page == "📊 Current Status":
+    with col2:
+        st.markdown("""
+        **Prediction Benefits:**
+        - Early warning for extreme weather
+        - Better agricultural planning
+        - Disaster preparedness
+        - Economic risk management
+        """)
+
+    st.info("👆 Ready to explore? Use the sidebar to see current conditions or future predictions!")
+
+elif page == "📊 Current Conditions":
     show_current_status(df)
 
+    st.markdown("---")
+    st.markdown("### 🌡️ Recent Temperature Patterns")
+
+    # Show recent SST data if available
+    if sst_ds is not None:
+        latest_year = df["Date"].max().year
+        latest_month = df["Date"].max().month
+
+        try:
+            sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == latest_year) &
+                                 (sst_ds['time.month'] == latest_month))['sst']
+            fig, ax = plt.subplots(figsize=(12, 6))
+            sst_slice.plot(ax=ax, cmap='RdYlBu_r', cbar_kwargs={"label": "Temperature (°C)"})
+            ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black',
+                                         facecolor='none', linewidth=2))
+            ax.text(189, 8, 'Niño 3.4 Region\n(Key ENSO Area)', color='black', fontweight='bold')
+            ax.set_title(f"Global Sea Surface Temperature - {latest_year}/{latest_month:02d}")
+            ax.set_xlabel("Longitude [°E]")
+            ax.set_ylabel("Latitude [°N]")
+            st.pyplot(fig)
+
+            st.info("The black box shows the Niño 3.4 region - the key area we monitor for ENSO conditions.")
+
+        except Exception as e:
+            st.warning("Unable to load current SST data. Using historical reference.")
+
+    # Recent trend
     st.markdown("### 📈 Recent Trend (Last 2 Years)")
-    recent = df.tail(24)
+    recent_df = df.tail(24)
 
     fig = go.Figure()
     for phase in ["La Niña", "Neutral", "El Niño"]:
-        phase_data = recent[recent["True_Phase"] == phase]
+        phase_data = recent_df[recent_df["True_Phase"] == phase]
         if not phase_data.empty:
             fig.add_trace(go.Scatter(
-                x=phase_data["Date"], y=phase_data["ONI"],
-                mode='markers+lines', name=phase,
-                marker=dict(color=PHASE_COLORS[phase], size=8)
+                x=phase_data["Date"],
+                y=phase_data["ONI"],
+                mode='markers+lines',
+                name=phase,
+                marker=dict(color=PHASE_COLORS[phase], size=8),
+                line=dict(color=PHASE_COLORS[phase])
             ))
 
-    fig.add_hline(y=0.5, line_dash="dot", line_color="red")
-    fig.add_hline(y=-0.5, line_dash="dot", line_color="blue")
+    fig.add_hline(y=0.5, line_dash="dot", line_color="red", annotation_text="El Niño")
+    fig.add_hline(y=-0.5, line_dash="dot", line_color="blue", annotation_text="La Niña")
     fig.update_layout(title="Recent ENSO Conditions", xaxis_title="Date",
                      yaxis_title="ONI Index", template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
-elif page == "🔮 Forecast":
+elif page == "🔮 Future Predictions":
     st.markdown("## 🔮 ENSO Forecast")
+    st.markdown("*Using AI to predict climate patterns up to 12 months ahead*")
 
-    months_ahead = st.slider("Forecast months ahead:", 3, 24, 12)
+    # Forecast controls
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        months_ahead = st.slider("Forecast Period (months)", 3, 24, 12)
+    with col2:
+        st.markdown("**Confidence:**")
+        st.markdown("🟢 High (>70%)")
+        st.markdown("🟡 Medium (50-70%)")
+        st.markdown("🔴 Low (<50%)")
 
+    # Create and show forecast
     try:
-        fig, future_df = create_forecast_plot(df, model, months_ahead)
-        st.plotly_chart(fig, use_container_width=True)
+        forecast_fig, future_df = create_forecast_visualization(df, model, months_ahead)
+        st.plotly_chart(forecast_fig, use_container_width=True)
 
-        # Summary stats
+        # Forecast summary
         st.markdown("### 📋 Forecast Summary")
+
+        # Group predictions by phase
         phase_counts = future_df["Predicted_Phase"].value_counts()
         avg_confidence = future_df["Confidence"].mean()
 
-        cols = st.columns(4)
-        with cols[0]:
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
             st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
 
         for i, (phase, count) in enumerate(phase_counts.items()):
-            if i < 3:
-                with cols[i+1]:
+            if i < 3:  # Only show first 3 phases
+                with [col2, col3, col4][i]:
                     st.metric(f"{phase} Months", f"{count}/{months_ahead}")
 
         # Detailed forecast table
-        st.markdown("### 📅 Monthly Details")
-        display_df = future_df[["Date", "Predicted_Phase", "Confidence"]].copy()
+        st.markdown("### 📅 Monthly Forecast Details")
+
+        display_df = future_df[["Date", "Predicted_Phase", "Confidence", "SST_Anomaly"]].copy()
         display_df["Date"] = display_df["Date"].dt.strftime("%Y-%m")
-        display_df["Confidence"] = display_df["Confidence"].apply(lambda x: f"{x:.0%}")
-        display_df.columns = ["Month", "Predicted Phase", "Confidence"]
+        display_df["Confidence"] = display_df["Confidence"].apply(lambda x: f"{x:.1%}")
+        display_df["SST_Anomaly"] = display_df["SST_Anomaly"].round(2)
+        display_df.columns = ["Month", "Predicted Phase", "Confidence", "SST Anomaly (°C)"]
+
         st.dataframe(display_df, use_container_width=True)
 
-        # Download option
+        # Download forecast
         csv = future_df.to_csv(index=False)
-        st.download_button("📥 Download Forecast", csv, "enso_forecast.csv")
+        st.download_button("📥 Download Forecast Data", csv, "enso_forecast.csv", "text/csv")
 
     except Exception as e:
-        st.error(f"Forecast error: {e}")
+        st.error(f"Error generating forecast: {str(e)}")
 
-    st.warning("⚠️ Predictions are based on historical patterns and may not reflect actual future conditions.")
+    st.warning("⚠️ **Important:** These are model predictions based on historical patterns. Actual conditions may vary. Use for planning purposes only.")
 
-elif page == "📈 History":
-    st.markdown("## 📈 Historical Patterns")
+elif page == "📈 Historical Analysis":
+    st.markdown("## 📈 Historical Climate Patterns")
+    st.markdown("*Explore decades of ENSO data to understand long-term trends*")
 
-    # Controls
+    # Time period selection
     col1, col2 = st.columns(2)
     with col1:
-        min_year, max_year = int(df["Date"].dt.year.min()), int(df["Date"].dt.year.max())
-        year_range = st.slider("Year range:", min_year, max_year, (max_year-20, max_year))
+        min_year = int(df["Date"].dt.year.min())
+        max_year = int(df["Date"].dt.year.max())
+        years = st.slider("Year Range", min_year, max_year, (max_year-20, max_year))
     with col2:
-        phases = st.multiselect("Show phases:", ["La Niña", "Neutral", "El Niño"],
-                               default=["La Niña", "Neutral", "El Niño"])
+        selected_phases = st.multiselect("ENSO Phases",
+                                       ["La Niña", "Neutral", "El Niño"],
+                                       default=["La Niña", "Neutral", "El Niño"])
 
     # Filter data
-    filtered = df[
-        (df["Date"].dt.year >= year_range[0]) &
-        (df["Date"].dt.year <= year_range[1]) &
-        (df["True_Phase"].isin(phases))
+    df_filtered = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["True_Phase"].isin(selected_phases))
     ]
 
-    # Timeline plot
+    # Historical timeline
+    st.markdown("### 🌊 ENSO Timeline")
     fig = go.Figure()
-    for phase in phases:
-        phase_data = filtered[filtered["True_Phase"] == phase]
+
+    for phase in selected_phases:
+        phase_data = df_filtered[df_filtered["True_Phase"] == phase]
         if not phase_data.empty:
             fig.add_trace(go.Scatter(
-                x=phase_data["Date"], y=phase_data["ONI"],
-                mode='markers', name=phase,
+                x=phase_data["Date"],
+                y=phase_data["ONI"],
+                mode='markers',
+                name=phase,
                 marker=dict(color=PHASE_COLORS[phase], size=6)
             ))
 
     fig.add_hline(y=0.5, line_dash="dot", line_color="red")
     fig.add_hline(y=-0.5, line_dash="dot", line_color="blue")
-    fig.update_layout(title="Historical ENSO Timeline", xaxis_title="Date",
-                     yaxis_title="ONI Index", template="plotly_white", height=400)
+    fig.update_layout(title="Historical ENSO Conditions",
+                     xaxis_title="Date", yaxis_title="ONI Index",
+                     template="plotly_white", height=400)
     st.plotly_chart(fig, use_container_width=True)
 
     # Statistics
-    st.markdown("### 📊 Statistics")
-    phase_stats = filtered["True_Phase"].value_counts()
-    total = len(filtered)
+    st.markdown("### 📊 Period Statistics")
+    col1, col2, col3 = st.columns(3)
 
-    cols = st.columns(len(phases))
-    for i, phase in enumerate(phases):
+    phase_stats = df_filtered["True_Phase"].value_counts()
+    total_months = len(df_filtered)
+
+    for i, phase in enumerate(["La Niña", "Neutral", "El Niño"]):
         count = phase_stats.get(phase, 0)
-        pct = (count/total*100) if total > 0 else 0
-        with cols[i]:
-            st.metric(f"{phase}", f"{count} months", f"{pct:.1f}%")
+        percentage = (count / total_months * 100) if total_months > 0 else 0
 
-elif page == "⚙️ Model Info":
-    st.markdown("## ⚙️ Model Performance")
+        with [col1, col2, col3][i]:
+            st.metric(
+                f"{phase} Frequency",
+                f"{count} months",
+                f"{percentage:.1f}%"
+            )
 
-    # Accuracy metrics
-    y_true, y_pred = df["True_Phase"], df["Predicted_Phase"]
+elif page == "⚙️ Model Performance":
+    st.markdown("## ⚙️ Model Performance & Accuracy")
+    st.markdown("*How well does our AI predict ENSO conditions?*")
+
+    # Model accuracy on historical data
+    X = df[FEATURE_COLS]
+    y_true = df["True_Phase"]
+    y_pred = df["Predicted_Phase"]
+
     accuracy = accuracy_score(y_true, y_pred)
 
-    cols = st.columns(3)
-    with cols[0]:
+    col1, col2, col3 = st.columns(3)
+    with col1:
         st.metric("Overall Accuracy", f"{accuracy:.1%}")
-    with cols[1]:
-        st.metric("Data Points", f"{len(df):,}")
-    with cols[2]:
-        st.metric("Features", len(FEATURE_COLS))
+    with col2:
+        st.metric("Training Data Size", f"{len(df):,} months")
+    with col3:
+        st.metric("Features Used", len(FEATURE_COLS))
 
-    # Confusion matrix
-    st.markdown("### 🎯 Confusion Matrix")
+    # Confusion Matrix
+    st.markdown("### 🎯 Prediction Accuracy by Phase")
     cm = confusion_matrix(y_true, y_pred, labels=["La Niña", "Neutral", "El Niño"])
-    fig = px.imshow(cm, x=["La Niña", "Neutral", "El Niño"], y=["La Niña", "Neutral", "El Niño"],
-                    color_continuous_scale="Blues", text_auto=True,
-                    labels=dict(x="Predicted", y="Actual"))
-    fig.update_layout(title="Prediction Accuracy by Phase")
+
+    # Create heatmap
+    fig = px.imshow(cm,
+                    labels=dict(x="Predicted", y="Actual"),
+                    x=["La Niña", "Neutral", "El Niño"],
+                    y=["La Niña", "Neutral", "El Niño"],
+                    color_continuous_scale="Blues",
+                    text_auto=True)
+    fig.update_layout(title="Confusion Matrix: Actual vs Predicted")
     st.plotly_chart(fig, use_container_width=True)
 
-    # Feature importance (if available)
+    # Classification Report
+    st.markdown("### 📋 Detailed Performance Metrics")
+    report = classification_report(y_true, y_pred, output_dict=True)
+    report_df = pd.DataFrame(report).transpose().round(3)
+    st.dataframe(report_df, use_container_width=True)
+
+    # Feature Importance
+    st.markdown("### 🔍 What the Model Looks At")
+    st.markdown("*Which climate indicators are most important for predictions?*")
+
+    # Get feature importance from the model
     if hasattr(model, 'feature_importances_'):
-        st.markdown("### 🔍 Feature Importance")
         importance_df = pd.DataFrame({
             "Feature": FEATURE_COLS,
             "Importance": model.feature_importances_
         }).sort_values("Importance", ascending=True)
 
-        fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+        fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h",
+                     title="Feature Importance in ENSO Prediction")
+        fig.update_layout(height=400)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Model details
-    st.markdown("### 📋 Model Details")
-    st.markdown("""
-    - **Type**: Random Forest Classifier
-    - **Features**: SST anomalies, SOI values, seasonal patterns, and their lags
-    - **Training**: Historical ENSO data from 1982-2025
-    - **Purpose**: Educational demonstration of climate pattern prediction
-    """)
+        st.info("Higher values mean the model relies more heavily on that climate indicator for making predictions.")
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("*Built by Dylan Dsouza*")
+    st.markdown("---")
+    st.markdown("### 🔬 Model Details")
+    st.markdown("""
+    **Model Type:** Random Forest Classifier
+    **Training Period:** 1982-2025 
+    **Key Features:**
+    - Sea Surface Temperature anomalies (current and lagged)
+    - Southern Oscillation Index (current and lagged) 
+    - Seasonal patterns (month encoding)
+    
+    **Limitations:**
+    - Based on historical patterns only
+    - Cannot predict unprecedented climate events
+    - Accuracy decreases for longer-term forecasts
+    """)
