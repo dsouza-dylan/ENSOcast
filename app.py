@@ -11,7 +11,7 @@ import matplotlib.patches as patches
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from datetime import datetime, timedelta
+from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -60,7 +60,9 @@ def load_sst_dataset():
 def generate_future_features(df, months_ahead=12):
     """Generate features for future predictions using trend extrapolation and seasonality"""
     last_date = df["Date"].max()
-    future_dates = pd.date_range(start=last_date + timedelta(days=32), periods=months_ahead, freq='MS')
+    # Use pandas offset instead of timedelta for timestamp arithmetic
+    next_month = last_date + pd.DateOffset(months=1)
+    future_dates = pd.date_range(start=next_month, periods=months_ahead, freq='MS')
 
     future_data = []
 
