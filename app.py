@@ -209,7 +209,7 @@ elif page == "🛠 Interactive Prediction Tool":
     st.plotly_chart(fig, use_container_width=True)
 
     X_custom = filtered_df[feature_cols]
-    y_pred_custom = model.predict(X_custom)
+    y_pred_custom = custom_model.predict(X_custom)
     filtered_df["Predicted_Phase"] = [label_map[i] for i in y_pred_custom]
 
 
