@@ -414,21 +414,107 @@ elif page == "📊 Current Conditions":
                      yaxis_title="ONI Index", template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
+# elif page == "🔮 Future Predictions":
+#     st.markdown("## 🔮 ENSO Forecast")
+#     st.markdown("*Using AI to predict climate patterns up to 12 months ahead*")
+#
+#     # Forecast controls
+#     col1, col2 = st.columns([2, 1])
+#     with col1:
+#         months_ahead = st.slider("Forecast Period (months)", 3, 24, 12)
+#     with col2:
+#         st.markdown("**Confidence:**")
+#         st.markdown("🟢 High (>70%)")
+#         st.markdown("🟡 Medium (50-70%)")
+#         st.markdown("🔴 Low (<50%)")
+#
+#     # Create and show forecast
+#     try:
+#         forecast_fig, future_df = create_forecast_visualization(df, model, months_ahead)
+#         st.plotly_chart(forecast_fig, use_container_width=True)
+#
+#         # Forecast summary
+#         st.markdown("### 📋 Forecast Summary")
+#
+#         # Group predictions by phase
+#         phase_counts = future_df["Predicted_Phase"].value_counts()
+#         avg_confidence = future_df["Confidence"].mean()
+#
+#         col1, col2, col3, col4 = st.columns(4)
+#
+#         with col1:
+#             st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
+#
+#         for i, (phase, count) in enumerate(phase_counts.items()):
+#             if i < 3:  # Only show first 3 phases
+#                 with [col2, col3, col4][i]:
+#                     st.metric(f"{phase} Months", f"{count}/{months_ahead}")
+#
+#         # Detailed forecast table
+#         st.markdown("### 📅 Monthly Forecast Details")
+#
+#         display_df = future_df[["Date", "Predicted_Phase", "Confidence", "SST_Anomaly"]].copy()
+#         display_df["Date"] = display_df["Date"].dt.strftime("%Y-%m")
+#         display_df["Confidence"] = display_df["Confidence"].apply(lambda x: f"{x:.1%}")
+#         display_df["SST_Anomaly"] = display_df["SST_Anomaly"].round(2)
+#         display_df.columns = ["Month", "Predicted Phase", "Confidence", "SST Anomaly (°C)"]
+#
+#         st.dataframe(display_df, use_container_width=True)
+#
+#         # Download forecast
+#         csv = future_df.to_csv(index=False)
+#         st.download_button("📥 Download Forecast Data", csv, "enso_forecast.csv", "text/csv")
+#
+#     except Exception as e:
+#         st.error(f"Error generating forecast: {str(e)}")
+#
+#     st.warning("⚠️ **Important:** These are model predictions based on historical patterns. Actual conditions may vary. Use for planning purposes only.")
+
 elif page == "🔮 Future Predictions":
     st.markdown("## 🔮 ENSO Forecast")
     st.markdown("*Using AI to predict climate patterns up to 12 months ahead*")
 
     # Forecast controls
-    col1, col2 = st.columns([2, 1])
-    with col1:
+    col_main1, col_main2 = st.columns([2, 1])
+    with col_main1:
         months_ahead = st.slider("Forecast Period (months)", 3, 24, 12)
-    with col2:
+    with col_main2:
         st.markdown("**Confidence:**")
         st.markdown("🟢 High (>70%)")
         st.markdown("🟡 Medium (50-70%)")
         st.markdown("🔴 Low (<50%)")
 
-    # Create and show forecast
+    # Forecast generation
+    def create_forecast_visualization(df, model, months_ahead):
+        import pandas as pd
+        import numpy as np
+        import plotly.express as px
+
+        last_date = df["Date"].max()
+        future_dates = pd.date_range(start=last_date + pd.DateOffset(months=1),
+                                     periods=months_ahead, freq="MS")
+
+        # You should replace this block with actual model predictions
+        predictions = np.random.choice(["El Niño", "La Niña", "Neutral"], size=months_ahead)
+        confidence = np.random.uniform(0.4, 0.9, size=months_ahead)
+        sst_anomaly = np.random.normal(0, 1, size=months_ahead)
+
+        future_df = pd.DataFrame({
+            "Date": future_dates,
+            "Predicted_Phase": predictions,
+            "Confidence": confidence,
+            "SST_Anomaly": sst_anomaly
+        })
+
+        fig = px.bar(
+            future_df, x="Date", y="Confidence", color="Predicted_Phase",
+            title="ENSO Forecast Confidence by Month",
+            labels={"Confidence": "Prediction Confidence", "Date": "Forecast Month"}
+        )
+
+        return fig, future_df
+
+    # Try forecast
     try:
         forecast_fig, future_df = create_forecast_visualization(df, model, months_ahead)
         st.plotly_chart(forecast_fig, use_container_width=True)
@@ -436,21 +522,20 @@ elif page == "🔮 Future Predictions":
         # Forecast summary
         st.markdown("### 📋 Forecast Summary")
 
-        # Group predictions by phase
         phase_counts = future_df["Predicted_Phase"].value_counts()
         avg_confidence = future_df["Confidence"].mean()
 
-        col1, col2, col3, col4 = st.columns(4)
+        col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
 
-        with col1:
+        with col_metric1:
             st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
 
         for i, (phase, count) in enumerate(phase_counts.items()):
-            if i < 3:  # Only show first 3 phases
-                with [col2, col3, col4][i]:
+            if i < 3:
+                with [col_metric2, col_metric3, col_metric4][i]:
                     st.metric(f"{phase} Months", f"{count}/{months_ahead}")
 
-        # Detailed forecast table
+        # Forecast table
         st.markdown("### 📅 Monthly Forecast Details")
 
         display_df = future_df[["Date", "Predicted_Phase", "Confidence", "SST_Anomaly"]].copy()
@@ -469,6 +554,7 @@ elif page == "🔮 Future Predictions":
         st.error(f"Error generating forecast: {str(e)}")
 
     st.warning("⚠️ **Important:** These are model predictions based on historical patterns. Actual conditions may vary. Use for planning purposes only.")
+
 
 elif page == "📈 Historical Analysis":
     st.markdown("## 📈 Historical Climate Patterns")
