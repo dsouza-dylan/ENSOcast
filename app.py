@@ -997,7 +997,6 @@ elif page == "🔮 Future Predictions":
         st.markdown("🔴 Low (<60%)")
 
     # Model training and prediction function
-    @st.cache_data(ttl=3600)  # Cache for 1 hour
     def train_enso_model(data, model_type):
         """Train ENSO forecasting model using proper features"""
         import numpy as np
@@ -1009,7 +1008,11 @@ elif page == "🔮 Future Predictions":
         import warnings
         warnings.filterwarnings('ignore')
 
-        # Prepare features for modeling
+        # Debug: Check what columns we actually have
+        print(f"Columns in data: {list(data.columns)}")
+        print(f"Data shape: {data.shape}")
+
+        # Prepare features for modeling - using your exact column names
         feature_cols = [
             'SST', 'SOI', 'SST_Anomaly', 'ONI',
             'SOI_lag_1', 'SOI_lag_2', 'SOI_lag_3',
@@ -1017,11 +1020,27 @@ elif page == "🔮 Future Predictions":
             'month_sin', 'month_cos'
         ]
 
+        # Verify all feature columns exist
+        missing_features = [col for col in feature_cols if col not in data.columns]
+        if missing_features:
+            raise ValueError(f"Missing feature columns: {missing_features}")
+
         # Clean data - remove rows with NaN values
-        clean_data = data[feature_cols + ['ENSO_Phase', 'ENSO_Label']].dropna()
+        target_cols = ['ENSO_Phase', 'ENSO_Label']
+        all_cols = feature_cols + target_cols
+
+        # Check if target columns exist
+        missing_targets = [col for col in target_cols if col not in data.columns]
+        if missing_targets:
+            raise ValueError(f"Missing target columns: {missing_targets}")
+
+        clean_data = data[all_cols].dropna()
 
         if len(clean_data) < 50:
-            raise ValueError("Insufficient clean data for training")
+            raise ValueError(f"Insufficient clean data for training. Only {len(clean_data)} rows available after removing NaN values.")
+
+        print(f"Clean data shape: {clean_data.shape}")
+        print(f"ENSO Phase distribution: {clean_data['ENSO_Phase'].value_counts().to_dict()}")
 
         X = clean_data[feature_cols]
         y_phase = clean_data['ENSO_Phase']  # For classification
@@ -1092,6 +1111,9 @@ elif page == "🔮 Future Predictions":
         predictions = []
         last_data = model_dict['last_known_data'].copy()
 
+        # Get the current month from the data
+        current_month = int(last_data.get('month', 1))  # Default to January if missing
+
         for month in range(months_ahead):
             # Prepare features for prediction
             features = np.array([last_data[col] for col in model_dict['feature_cols']]).reshape(1, -1)
@@ -1109,19 +1131,22 @@ elif page == "🔮 Future Predictions":
             # Determine SST anomaly from ONI prediction
             sst_anomaly = oni_pred
 
+            # Get class probabilities - handle different numbers of classes
+            phase_classes = model_dict['phase_model'].classes_
+            proba_dict = dict(zip(phase_classes, phase_proba))
+
             predictions.append({
                 'month_ahead': month + 1,
                 'predicted_phase': phase_pred,
                 'confidence': confidence,
                 'oni_prediction': oni_pred,
                 'sst_anomaly': sst_anomaly,
-                'el_nino_prob': phase_proba[0] if len(phase_proba) > 0 else 0,
-                'la_nina_prob': phase_proba[1] if len(phase_proba) > 1 else 0,
-                'neutral_prob': phase_proba[2] if len(phase_proba) > 2 else 0
+                'el_nino_prob': proba_dict.get('El Niño', 0),
+                'la_nina_prob': proba_dict.get('La Niña', 0),
+                'neutral_prob': proba_dict.get('Neutral', 0)
             })
 
-            # Update lagged features for next prediction (simplified)
-            # In practice, you'd need more sophisticated state tracking
+            # Update lagged features for next prediction
             last_data['SOI_lag_3'] = last_data['SOI_lag_2']
             last_data['SOI_lag_2'] = last_data['SOI_lag_1']
             last_data['SOI_lag_1'] = last_data['SOI']
@@ -1134,9 +1159,15 @@ elif page == "🔮 Future Predictions":
             last_data['ONI'] = oni_pred
 
             # Update seasonal components
-            current_month = (last_data['month'] + month) % 12 + 1
-            last_data['month_sin'] = np.sin(2 * np.pi * current_month / 12)
-            last_data['month_cos'] = np.cos(2 * np.pi * current_month / 12)
+            future_month = (current_month + month) % 12
+            if future_month == 0:
+                future_month = 12
+            last_data['month_sin'] = np.sin(2 * np.pi * future_month / 12)
+            last_data['month_cos'] = np.cos(2 * np.pi * future_month / 12)
+
+            # Update month value (though not used in features)
+            if 'month' in last_data:
+                last_data['month'] = future_month
 
         return pd.DataFrame(predictions)
 
