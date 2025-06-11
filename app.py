@@ -938,8 +938,11 @@ elif page == "📊 Current Conditions":
 #
 #     st.info("💡 **Note:** This demo uses simulated forecasting. In a production system, this would be connected to trained climate models using machine learning algorithms trained on historical ENSO data.")
 
-
 elif page == "🔮 Future Predictions":
+    import numpy as np
+    import pandas as pd
+    import plotly.express as px
+
     st.markdown("## 🔮 ENSO Forecast")
     st.markdown("*Using ML models trained on SOI, SST, and ONI data for climate predictions*")
 
@@ -948,18 +951,37 @@ elif page == "🔮 Future Predictions":
         st.error("❌ ENSO dataset not available. Please load data first.")
         st.stop()
 
-    # Verify required columns
-    required_features = [
-        'SST', 'SOI', 'month', 'SST_Climatology', 'SST_Anomaly',
+    # Check and prepare the dataset
+    df_work = df.copy()
+
+    # Your exact column structure
+    expected_columns = [
+        'Date', 'SST', 'SOI', 'month', 'SST_Climatology', 'SST_Anomaly',
         'SOI_lag_1', 'SOI_lag_2', 'SOI_lag_3', 'month_sin', 'month_cos',
         'SST_Anomaly_lag_1', 'SST_Anomaly_lag_2', 'SST_Anomaly_lag_3',
         'ENSO_Label', 'ONI', 'ENSO_Phase'
     ]
 
-    missing_cols = [col for col in required_features if col not in df.columns]
+    # Check if all expected columns exist
+    missing_cols = [col for col in expected_columns if col not in df_work.columns]
     if missing_cols:
-        st.error(f"❌ Missing required columns: {missing_cols}")
+        st.error(f"❌ Missing columns: {missing_cols}")
+        st.markdown("**Your columns:**")
+        st.write(list(df_work.columns))
         st.stop()
+
+    # Ensure Date column is datetime
+    if 'Date' in df_work.columns:
+        df_work['Date'] = pd.to_datetime(df_work['Date'])
+
+    # Show dataset info
+    with st.expander("🔍 Dataset Information"):
+        st.write(f"**Dataset shape:** {df_work.shape}")
+        st.write(f"**Date range:** {df_work['Date'].min()} to {df_work['Date'].max()}")
+        st.write(f"**ENSO Phase distribution:**")
+        st.write(df_work['ENSO_Phase'].value_counts())
+        st.write(f"**Missing values:**")
+        st.write(df_work.isnull().sum())
 
     # Forecast controls
     col_main1, col_main2, col_main3 = st.columns([2, 1, 1])
@@ -1121,7 +1143,7 @@ elif page == "🔮 Future Predictions":
     # Train model and generate forecast
     try:
         with st.spinner(f"Training {model_type} model on ENSO data..."):
-            model_dict = train_enso_model(df, model_type)
+            model_dict = train_enso_model(df_work, model_type)
 
         # Display model performance
         col_perf1, col_perf2 = st.columns(2)
