@@ -1,133 +1,243 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import joblib
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
 import xarray as xr
 import matplotlib.pyplot as plt
-
-df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
-model = joblib.load("best_rf_model.pkl")
-
-label_order = ["El Niño", "La Niña", "Neutral"]
-label_map = {0: "El Niño", 1: "La Niña", 2: "Neutral"}
+import matplotlib.patches as patches
+from sklearn.metrics import classification_report, confusion_matrix
 
 st.set_page_config(page_title="ENSOcast", layout="wide")
 
-# === TITLE & INTRO ===
-st.image("ENSOcast_logo_blue.png", width=120)
-st.subheader("🌎 Understanding ENSO (El Niño—Southern Oscillation)")
-st.title("ENSOcast — Your ENSO Forecasting Companion")
-st.markdown("""
-ENSO stands for El—Niño Southern Oscillation, is a natural climate pattern characterized by fluctuations in sea surface temperatures and atmospheric pressure in the tropical Pacific Ocean.
-These fluctuations strongly influence global weather, affecting rainfall, droughts, and marine ecosystems worldwide.
+@st.cache_data
+def load_model_and_data():
+    df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
+    model = joblib.load("enso_model_a_baseline.pkl")
+    return df, model
 
-This app uses machine learning to classify ENSO phases — *El Niño*, *La Niña*, and *Neutral* — based on Sea Surface Temperature (SST) and Oceanic Niño Index (ONI) data.
-Explore historical trends, global SST snapshots, and model predictions to understand ENSO dynamics and their global impacts.
-""")
-
-# === SIDEBAR FILTERS ===
-st.sidebar.header("Filters")
-year_range = st.sidebar.slider("Select Year Range", 1981, 2025, (2000, 2020), help="Filter data by year range")
-phases = st.sidebar.multiselect("Select ENSO Phases", label_order, default=label_order, help="Choose which ENSO phases to display")
-
-df = df[(df["Date"].dt.year >= year_range[0]) & (df["Date"].dt.year <= year_range[1])]
-df = df[df["ENSO_Phase"].isin(phases)]
-
-# === GLOBAL SST SNAPSHOT ===
-@st.cache_data(show_spinner=True)
+@st.cache_data
 def load_sst_dataset():
     url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
     ds = xr.open_dataset(url)
-    ds['time'] = pd.to_datetime(ds['time'].values)
-    august_sst = ds.sel(time=ds['time.month'] == 8)
-    return august_sst
+    ds["time"] = pd.to_datetime(ds["time"].values)
+    return ds
 
-st.subheader("🌡️ Global Sea Surface Temperature Snapshot (August)")
-st.markdown("""
-This map shows sea surface temperatures (SST) globally for August of the selected year.
-Warm areas (red) often indicate El Niño conditions, while cooler areas (blue) suggest La Niña.
-Monitoring SST patterns helps predict ENSO phases and their potential impacts worldwide.
-""")
-
+df, model = load_model_and_data()
 sst_ds = load_sst_dataset()
-available_years = pd.DatetimeIndex(sst_ds.time.values).year
-selected_year = st.slider("Select Year for SST Snapshot", int(available_years.min()), int(available_years.max()), 2000)
 
-sst_slice = sst_ds.sel(time=str(selected_year))['sst']
-
-fig, ax = plt.subplots(figsize=(12, 4))
-sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "Temperature (°C)"})
-ax.set_title(f"Sea Surface Temperature - August {selected_year}")
-ax.set_xlabel("Longitude")
-ax.set_ylabel("Latitude")
-st.pyplot(fig)
-
-# === TIME SERIES VISUALIZATION ===
-st.subheader("📈 Historical SST and ONI Trends")
-st.markdown("""
-Explore historical trends in Sea Surface Temperature (SST) and Oceanic Niño Index (ONI), which are key indicators used to identify ENSO phases.
-Use the filters above to customize the timeframe and ENSO phases displayed.
-""")
-
-metric_option = st.selectbox("Select Metric to Plot", ["sst", "ONI", "Both"], help="Choose which metrics to visualize over time")
-plot_cols = ["sst", "ONI"] if metric_option == "Both" else [metric_option]
-fig = px.line(df, x="Date", y=plot_cols, labels={"value": "Temperature / Index", "variable": "Metric"},
-              title="SST and ONI Over Time")
-st.plotly_chart(fig, use_container_width=True)
-
-# === MODEL PREDICTIONS AND EVALUATION ===
-st.subheader("🤖 ENSO Phase Predictions & Model Performance")
-st.markdown("""
-The Random Forest model predicts ENSO phases based on SST anomalies and recent ONI values, capturing seasonal patterns through sine and cosine transformations of months.
-Below are the prediction accuracy and detailed classification metrics for each ENSO phase.
-""")
-
-features = ['sst_anomaly', 'oni_lag_1', 'oni_lag_2', 'oni_lag_3', 'month_sin', 'month_cos']
-X = df[features]
+feature_cols = [
+    "SST_Anomaly", "SOI", "SOI_lag_1", "SOI_lag_2", "SOI_lag_3",
+    "SST_Anomaly_lag_1", "SST_Anomaly_lag_2", "SST_Anomaly_lag_3",
+    "month_sin", "month_cos"
+]
+X = df[feature_cols]
 y_true = df["ENSO_Label"]
 y_pred = model.predict(X)
 
-y_true_labels = [label_map[i] for i in y_true]
-y_pred_labels = [label_map[i] for i in y_pred]
+label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
+df["Predicted_Phase"] = [label_map[i] for i in y_pred]
+df["True_Phase"] = [label_map[i] for i in y_true]
 
-report = classification_report(y_true_labels, y_pred_labels, output_dict=True)
-report_df = pd.DataFrame(report).transpose().round(2)
-st.metric("Overall Model Accuracy", f"{report['accuracy'] * 100:.2f}%")
+st.title("🌊 ENSOcast: El Niño–Southern Oscillation Forecasts")
 
-st.markdown("### 📊 Classification Report Summary")
-st.dataframe(report_df.loc[label_order + ["accuracy"]])
+st.sidebar.title("🌊 ENSOcast")
+st.sidebar.markdown("---")
+st.sidebar.subheader("📂 Tab Navigation")
+page = st.sidebar.radio(
+    "",
+    ["🌡 Global SST Snapshot", "📈 Historical Trends", "💡 Model Insights", "🛠 Interactive Prediction Tool"],
+    index=0
+)
+st.sidebar.markdown("### ")
+st.sidebar.markdown("---")
+st.sidebar.markdown("Made by Dylan Dsouza")
 
-st.subheader("🔁 Confusion Matrix")
-cm = confusion_matrix(y_true_labels, y_pred_labels, labels=label_order)
-cm_df = pd.DataFrame(cm, index=["True " + lbl for lbl in label_order],
-                        columns=["Pred " + lbl for lbl in label_order])
-st.dataframe(cm_df)
+if page == "🌡 Global SST Snapshot":
+    st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
+    # st.markdown("### Global SST Snapshot")
+    selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
+    month_dict = {
+        "January": 1, "February": 2, "March": 3, "April": 4,
+        "May": 5, "June": 6, "July": 7, "August": 8,
+        "September": 9, "October": 10, "November": 11, "December": 12
+    }
+    selected_month = st.selectbox("Select Month", list(month_dict.keys()), index=7)
+    month_num = month_dict[selected_month]
 
-# === FEATURE IMPORTANCE ===
-st.subheader("🧩 Feature Importance")
-st.markdown("""
-Understanding which features most influence the model's predictions helps interpret the results and improve model trust.
-Here, SST anomalies and recent ONI lag values play the largest roles.
-""")
-importances = model.feature_importances_
-feat_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_values("Importance", ascending=False)
-fig_imp = px.bar(feat_df, x="Importance", y="Feature", orientation="h", title="Feature Importances")
-st.plotly_chart(fig_imp, use_container_width=True)
 
-# === DOWNLOAD PREDICTIONS ===
-st.subheader("📥 Download Predicted ENSO Phases")
-df["Predicted_Phase"] = y_pred_labels
-st.download_button("Download Predictions as CSV", df.to_csv(index=False), file_name="enso_predictions.csv", mime='text/csv')
+    try:
+        sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
+        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
+        ax.text(189, 8, 'Niño 3.4 Region', color='black')
+        ax.set_xlabel("Longitude [°E]")
+        ax.set_ylabel("Latitude [°N]")
+        st.pyplot(fig)
+    except Exception as e:
+        st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
 
-# === MODEL DETAILS & CLOSING ===
-st.markdown("---")
-st.markdown("### 🌳 Model Details")
-if hasattr(model, 'n_estimators'):
-    st.write(f"Number of Trees: {model.n_estimators}")
-if hasattr(model, 'max_depth'):
-    st.write(f"Max Depth: {model.max_depth}")
+elif page == "📈 Historical Trends":
+    st.header("📈 Historical Trends")
 
-st.markdown("---")
-st.markdown("✅ Built with NOAA data | Model: Random Forest | Author: You :)")
+    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
+    selected_phases = st.multiselect(
+        "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
+        default=["La Niña", "Neutral", "El Niño"]
+    )
+
+    df_filtered = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["ENSO_Phase"].isin(selected_phases))
+    ]
+
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    st.markdown("### Sea Surface Temperature (SST) Timeline")
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
+            name="Climatological SST (°C)",
+            line=dict(color='deepskyblue', dash='dot')
+        ),
+        secondary_y=True,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST"],
+            name="Observed SST (°C)",
+            line=dict(color='orange')
+        ),
+        secondary_y=False,
+    )
+
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Sea Surface Temperature (°C)",
+        legend=dict(x=0.01, y=1.1),
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+
+    fig.update_yaxes(title_text="Sea Surface Temperature (°C)", range=[24, 30], secondary_y=False)
+    fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels=False)
+
+    climatology_min = df_filtered["SST_Climatology"].min()
+    climatology_max = df_filtered["SST_Climatology"].max()
+
+    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
+                  annotation_text="Min. Climatological SST", annotation_position="bottom right")
+
+    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
+                  annotation_text="Max. Climatological SST", annotation_position="top right")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Oceanic Niño Index (ONI) Timeline")
+    fig_oni = px.line(df_filtered, x="Date", y="ONI")
+    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
+                      annotation_text="El Niño Threshold", annotation_position="top right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
+                      annotation_text="La Niña Threshold", annotation_position="bottom right")
+
+    st.plotly_chart(fig_oni, use_container_width=True)
+
+    st.markdown("### Southern Oscillation Index (SOI) Timeline")
+    fig_soi = px.line(df_filtered, x="Date", y="SOI")
+    fig_soi.update_layout(
+        yaxis_title="Southern Oscillation Index",
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
+    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
+    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
+    st.plotly_chart(fig_soi, use_container_width=True)
+
+elif page == "💡 Model Insights":
+    st.header("💡 Model Insights")
+    from sklearn.metrics import accuracy_score
+
+    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
+    st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
+
+    st.markdown("### Classification Report")
+    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
+    st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    st.markdown("### Confusion Matrix")
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
+    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
+
+    st.markdown("### Feature Importance")
+    importance_df = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": model.feature_importances_
+    }).sort_values("Importance", ascending=False)
+    fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+    st.plotly_chart(fig3, use_container_width=True)
+
+    st.markdown("### Download ENSO Predictions Results")
+    st.download_button("📥 Download CSV", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
+
+elif page == "🛠 Interactive Prediction Tool":
+    st.header("🛠 Interactive Prediction Tool")
+    from sklearn.metrics import accuracy_score
+    st.markdown("### Try the Model Yourself")
+
+    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
+    selected_phases = st.multiselect("Select ENSO Phases", ["La Niña", "Neutral", "El Niño"], default=["La Niña", "Neutral", "El Niño"])
+
+    filtered_df = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["True_Phase"].isin(selected_phases))
+    ]
+
+    X_custom = filtered_df[feature_cols]
+    y_custom = filtered_df["True_Phase"]
+
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X_custom, y_custom, test_size=0.3, shuffle=False)
+
+    from sklearn.ensemble import RandomForestClassifier
+    custom_model = RandomForestClassifier(random_state=42)
+    custom_model.fit(X_train, y_train)
+    y_pred_custom = custom_model.predict(X_test)
+
+    custom_accuracy = accuracy_score(y_test, y_pred_custom)
+    st.metric("Custom Model Accuracy", f"{custom_accuracy * 100:.2f}%")
+
+    st.markdown("### Classification Report")
+    report = classification_report(y_test, y_pred_custom, output_dict=True)
+    st.dataframe(pd.DataFrame(report).transpose().round(2))
+
+    st.markdown("### Confusion Matrix")
+    cm = confusion_matrix(y_test, y_pred_custom, labels=["La Niña", "Neutral", "El Niño"])
+    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"],
+                              columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
+
+    importance_df = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": custom_model.feature_importances_
+    }).sort_values("Importance", ascending=False)
+
+    fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
+    st.plotly_chart(fig, use_container_width=True)
+
+    X_custom = filtered_df[feature_cols]
+    y_pred_custom = model.predict(X_custom)
+    filtered_df["Predicted_Phase"] = [label_map[i] for i in y_pred_custom]
+
+
+    st.markdown("### Download Custom ENSO Prediction Results")
+    st.download_button("📥 Download CSV", filtered_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
