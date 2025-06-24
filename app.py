@@ -8,11 +8,11 @@ import joblib
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, cross_val_score
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 import datetime
 import warnings
 warnings.filterwarnings('ignore')
