@@ -7,3 +7,4 @@ scikit-learn
 xarray
 netCDF4
 matplotlib
+shap
