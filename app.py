@@ -60,13 +60,22 @@ def prepare_shap_values(model, X_sample):
 
 def create_feature_for_date(target_date, df, feature_cols):
     """Create features for a specific date based on historical patterns"""
-    # Convert target_date to datetime if it's not already
+    # Convert target_date to pandas Timestamp if it's not already
     if isinstance(target_date, str):
         target_date = pd.to_datetime(target_date)
+    elif isinstance(target_date, datetime.date):
+        # Convert datetime.date to pandas Timestamp
+        target_date = pd.Timestamp(target_date)
 
     # Find the closest available data point
     df_sorted = df.sort_values('Date')
-    closest_idx = np.argmin(np.abs((df_sorted['Date'] - target_date).dt.days))
+
+    # Calculate time differences - now both are pandas Timestamps
+    time_diffs = (df_sorted['Date'] - target_date).dt.days.abs()
+    closest_idx = time_diffs.idxmin()
+
+    # Get the actual index position in the sorted dataframe
+    closest_position = df_sorted.index.get_loc(closest_idx)
 
     # Get seasonal components
     month = target_date.month
@@ -74,7 +83,9 @@ def create_feature_for_date(target_date, df, feature_cols):
     month_cos = np.cos(2 * np.pi * month / 12)
 
     # Use recent historical averages for other features
-    recent_data = df_sorted.iloc[max(0, closest_idx-12):closest_idx+1]
+    start_idx = max(0, closest_position - 12)
+    end_idx = closest_position + 1
+    recent_data = df_sorted.iloc[start_idx:end_idx]
 
     if len(recent_data) == 0:
         # Fallback to overall averages
@@ -83,8 +94,10 @@ def create_feature_for_date(target_date, df, feature_cols):
         feature_values = recent_data[feature_cols].mean()
 
     # Update seasonal components
-    feature_values['month_sin'] = month_sin
-    feature_values['month_cos'] = month_cos
+    if 'month_sin' in feature_cols:
+        feature_values['month_sin'] = month_sin
+    if 'month_cos' in feature_cols:
+        feature_values['month_cos'] = month_cos
 
     return feature_values.values.reshape(1, -1)
 
