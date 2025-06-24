@@ -112,7 +112,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
-    ["🌡 Global SST Snapshot", "📈 Historical Trends", "💡 Model Insights", "🛠 Interactive Prediction Tool", "🔮 Advanced Predictions"],
+    ["🌡 Global SST Snapshot", "📈 Historical Trends", "🔮 Advanced Predictions", "🛠 Custom Model Training"],
     index=0
 )
 st.sidebar.markdown("### ")
@@ -264,9 +264,10 @@ elif page == "💡 Model Insights":
     st.markdown("### Download ENSO Predictions Results")
     st.download_button("📥 Download CSV", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
 
-elif page == "🛠 Interactive Prediction Tool":
-    st.header("🛠 Interactive Prediction Tool")
-    st.markdown("### Try the Model Yourself")
+elif page == "🛠 Custom Model Training":
+    st.header("🛠 Custom Model Training")
+    st.markdown("### Experiment with Different Models")
+    st.info("Train and compare different machine learning models on filtered ENSO data to see which performs best for your specific time period and conditions.")
 
     years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect("Select ENSO Phases", ["La Niña", "Neutral", "El Niño"], default=["La Niña", "Neutral", "El Niño"])
@@ -335,28 +336,46 @@ elif page == "🛠 Interactive Prediction Tool":
     st.download_button("📥 Download CSV", filtered_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
 
 elif page == "🔮 Advanced Predictions":
-    st.header("🔮 Advanced Predictions & Analysis")
+    st.header("🔮 Advanced ENSO Predictions")
 
-    # Section 1: Specific Date Prediction with Probabilities
-    st.markdown("### 🎯 Predict ENSO Phase for Specific Date")
+    # Introduction section
+    st.markdown("""
+    ### What is ENSO?
+    The **El Niño-Southern Oscillation (ENSO)** is a climate pattern that affects weather worldwide. It has three phases:
+    - 🔵 **La Niña**: Cooler ocean temperatures, often bringing more hurricanes and drought
+    - ⚪ **Neutral**: Normal ocean temperatures and typical weather patterns  
+    - 🔴 **El Niño**: Warmer ocean temperatures, often causing flooding and unusual weather
+    
+    ### How This Prediction Works
+    Our AI model analyzes sea surface temperatures, atmospheric pressure, and historical patterns to predict which ENSO phase is most likely for any given month.
+    """)
 
-    col1, col2 = st.columns(2)
+    st.markdown("---")
+
+    # Main prediction interface
+    st.markdown("### 🎯 Predict ENSO Phase for Any Month")
+    st.markdown("Choose a month and year to see what ENSO phase is predicted, along with the model's confidence level.")
+
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
-        target_year = st.number_input("Year", min_value=1982, max_value=2030, value=2024)
+        target_year = st.number_input("Year", min_value=1982, max_value=2030, value=2024, help="Select any year from 1982 to 2030")
     with col2:
         target_month = st.selectbox("Month", [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
-        ], index=0)
+        ], index=0, help="Select the month you want to predict")
+    with col3:
+        st.markdown("&nbsp;")  # Spacer
+        predict_button = st.button("🔮 Make Prediction", type="primary")
 
-    month_num = {
-        "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-        "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-    }[target_month]
+    if predict_button:
+        month_num = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        }[target_month]
 
-    target_date = datetime.date(target_year, month_num, 1)
+        target_date = datetime.date(target_year, month_num, 1)
 
-    if st.button("🔮 Make Prediction"):
         try:
             # Create features for the target date
             X_target = create_feature_for_date(target_date, df, feature_cols)
@@ -366,198 +385,171 @@ elif page == "🔮 Advanced Predictions":
             probabilities = model.predict_proba(X_target)[0]
 
             predicted_phase = label_map[prediction]
-
-            # Display results
-            st.success(f"**Predicted ENSO Phase for {target_month} {target_year}: {predicted_phase}**")
-
-            # Show probabilities
-            st.markdown("### 📊 Prediction Probabilities")
-            prob_df = pd.DataFrame({
-                "ENSO Phase": ["La Niña", "Neutral", "El Niño"],
-                "Probability": probabilities,
-                "Percentage": [f"{p*100:.1f}%" for p in probabilities]
-            })
-
-            # Create probability bar chart
-            fig_prob = px.bar(prob_df, x="ENSO Phase", y="Probability",
-                            text="Percentage", color="ENSO Phase",
-                            color_discrete_map={
-                                "La Niña": "blue",
-                                "Neutral": "gray",
-                                "El Niño": "red"
-                            })
-            fig_prob.update_traces(textposition='outside')
-            fig_prob.update_layout(showlegend=False, yaxis_title="Probability")
-            st.plotly_chart(fig_prob, use_container_width=True)
-
-            # Confidence assessment
             max_prob = max(probabilities)
+
+            # Create result display
+            if predicted_phase == "El Niño":
+                phase_emoji = "🔴"
+                phase_color = "red"
+                phase_description = "Warmer ocean temperatures expected. This often brings increased rainfall to the southern US and can disrupt normal weather patterns globally."
+            elif predicted_phase == "La Niña":
+                phase_emoji = "🔵"
+                phase_color = "blue"
+                phase_description = "Cooler ocean temperatures expected. This often brings drier conditions to the southern US and more active hurricane seasons."
+            else:
+                phase_emoji = "⚪"
+                phase_color = "gray"
+                phase_description = "Normal ocean temperatures expected. Weather patterns should be closer to typical seasonal averages."
+
+            st.markdown("### 📊 Prediction Results")
+
+            # Main prediction result
+            st.markdown(f"""
+            <div style="background-color: {phase_color}15; padding: 20px; border-radius: 10px; border-left: 5px solid {phase_color};">
+                <h2 style="color: {phase_color}; margin: 0;">{phase_emoji} {predicted_phase}</h2>
+                <p style="margin: 5px 0 0 0; font-size: 18px;"><strong>Predicted for {target_month} {target_year}</strong></p>
+                <p style="margin: 10px 0 0 0;">{phase_description}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Confidence level
             if max_prob > 0.7:
                 confidence = "High"
                 confidence_color = "green"
+                confidence_desc = "The model is very confident in this prediction."
             elif max_prob > 0.5:
-                confidence = "Medium"
+                confidence = "Moderate"
                 confidence_color = "orange"
+                confidence_desc = "The model has reasonable confidence, but there's some uncertainty."
             else:
                 confidence = "Low"
                 confidence_color = "red"
+                confidence_desc = "The model has low confidence - the prediction is uncertain."
 
-            st.markdown(f"**Model Confidence**: :{confidence_color}[{confidence}] ({max_prob*100:.1f}%)")
+            st.markdown(f"""
+            **Model Confidence:** <span style="color: {confidence_color};">**{confidence}** ({max_prob:.1%})</span>  
+            *{confidence_desc}*
+            """, unsafe_allow_html=True)
+
+            # Detailed probabilities
+            st.markdown("### 📈 Detailed Probabilities")
+            st.markdown("Here's how confident the model is for each possible ENSO phase:")
+
+            prob_data = {
+                "🔵 La Niña": probabilities[0],
+                "⚪ Neutral": probabilities[1],
+                "🔴 El Niño": probabilities[2]
+            }
+
+            for phase, prob in prob_data.items():
+                st.progress(prob, text=f"{phase}: {prob:.1%}")
+
+            # What this means section
+            st.markdown("### 🤔 What Does This Mean?")
+            st.markdown(f"""
+            - **Most Likely Outcome**: {predicted_phase} conditions in {target_month} {target_year}
+            - **Confidence Level**: {confidence} - {confidence_desc.lower()}
+            - **Key Insight**: The model analyzed sea surface temperatures, atmospheric pressure patterns, and historical data to make this prediction
+            """)
+
+            if max_prob < 0.6:
+                st.warning("⚠️ **Note**: This prediction has moderate to low confidence. ENSO predictions become less reliable further into the future or during transition periods.")
 
         except Exception as e:
-            st.error(f"Error making prediction: {e}")
+            st.error(f"❌ Error making prediction: {e}")
+            st.info("Please try a different date or check if the data is available for your selected time period.")
 
     st.markdown("---")
 
-    # Section 2: Predicted vs Actual Timeline
-    st.markdown("### 📈 Predicted vs Actual ENSO Phases Timeline")
+    # Educational section about model performance
+    st.markdown("### 📚 How Accurate Are These Predictions?")
 
-    # Filter controls
-    timeline_years = st.slider("Timeline Year Range", 1982, 2025, (2010, 2020), key="timeline")
+    # Calculate and display model accuracy in an intuitive way
+    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
+    total_predictions = len(df)
+    correct_predictions = int(accuracy * total_predictions)
 
-    df_timeline = df[
-        (df["Date"].dt.year >= timeline_years[0]) &
-        (df["Date"].dt.year <= timeline_years[1])
-    ].copy()
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Overall Accuracy", f"{accuracy:.1%}", help="Percentage of predictions that were correct")
+    with col2:
+        st.metric("Total Predictions", f"{total_predictions:,}", help="Number of months analyzed")
+    with col3:
+        st.metric("Correct Predictions", f"{correct_predictions:,}", help="Number of months predicted correctly")
 
-    # Create numerical mapping for plotting
-    phase_to_num = {"La Niña": -1, "Neutral": 0, "El Niño": 1}
-    df_timeline["True_Phase_Num"] = df_timeline["True_Phase"].map(phase_to_num)
-    df_timeline["Predicted_Phase_Num"] = df_timeline["Predicted_Phase"].map(phase_to_num)
+    st.markdown(f"""
+    **What this means**: Out of {total_predictions:,} months of historical data, our model correctly predicted the ENSO phase {correct_predictions:,} times. 
+    That's an accuracy rate of {accuracy:.1%}, which is quite good for climate prediction!
+    
+    **Important Notes**:
+    - Climate prediction is inherently uncertain - even the best models can't be 100% accurate
+    - Predictions are more reliable for the near future (3-6 months) than long-term forecasts
+    - The model works best during stable climate periods and may be less accurate during rapid transitions
+    """)
 
-    # Create timeline plot
-    fig_timeline = go.Figure()
+    # Simple visualization of recent predictions vs reality
+    st.markdown("### 📊 Recent Predictions vs Reality")
+    st.markdown("See how well the model has been performing recently:")
+
+    # Show last 2 years of data
+    recent_data = df[df["Date"] >= (df["Date"].max() - pd.DateOffset(years=2))].copy()
+
+    # Create a simple comparison chart
+    fig_recent = go.Figure()
 
     # Add actual phases
-    fig_timeline.add_trace(go.Scatter(
-        x=df_timeline["Date"],
-        y=df_timeline["True_Phase_Num"],
+    fig_recent.add_trace(go.Scatter(
+        x=recent_data["Date"],
+        y=[1 if phase == "El Niño" else 0 if phase == "Neutral" else -1 for phase in recent_data["True_Phase"]],
         mode='lines+markers',
         name='Actual Phase',
         line=dict(color='blue', width=3),
-        marker=dict(size=6)
+        marker=dict(size=8)
     ))
 
     # Add predicted phases
-    fig_timeline.add_trace(go.Scatter(
-        x=df_timeline["Date"],
-        y=df_timeline["Predicted_Phase_Num"],
+    fig_recent.add_trace(go.Scatter(
+        x=recent_data["Date"],
+        y=[1 if phase == "El Niño" else 0 if phase == "Neutral" else -1 for phase in recent_data["Predicted_Phase"]],
         mode='lines+markers',
         name='Predicted Phase',
         line=dict(color='red', width=2, dash='dot'),
-        marker=dict(size=4)
+        marker=dict(size=6, symbol='x')
     ))
 
-    fig_timeline.update_layout(
-        title="ENSO Phase Predictions vs Reality",
+    fig_recent.update_layout(
+        title="Model Predictions vs Actual ENSO Phases (Last 2 Years)",
         xaxis_title="Date",
         yaxis_title="ENSO Phase",
         yaxis=dict(
             tickmode='array',
             tickvals=[-1, 0, 1],
-            ticktext=['La Niña', 'Neutral', 'El Niño']
+            ticktext=['La Niña 🔵', 'Neutral ⚪', 'El Niño 🔴']
         ),
-        template="plotly_dark",
+        template="plotly_white",
+        height=400,
         hovermode='x unified'
     )
 
-    # Add reference lines
-    fig_timeline.add_hline(y=0.5, line_dash="dash", line_color="orange", opacity=0.3)
-    fig_timeline.add_hline(y=-0.5, line_dash="dash", line_color="orange", opacity=0.3)
+    st.plotly_chart(fig_recent, use_container_width=True)
 
-    st.plotly_chart(fig_timeline, use_container_width=True)
+    st.markdown("""
+    **How to read this chart**:
+    - **Blue line**: What actually happened
+    - **Red dotted line**: What the model predicted
+    - When the lines overlap, the model was correct
+    - When they diverge, the model made an error
+    """)
 
-    st.markdown("---")
+    # Final tips section
+    st.markdown("### 💡 Tips for Using These Predictions")
+    st.markdown("""
+    1. **Short-term predictions** (1-3 months ahead) are generally more reliable
+    2. **High confidence predictions** (>70%) are more likely to be accurate
+    3. **Consider multiple factors** - ENSO is just one part of the climate system
+    4. **Use for planning** - These predictions can help with agricultural, business, or travel planning
+    5. **Stay updated** - Climate patterns can change rapidly, so check back regularly
+    """)
 
-    # Section 3: SHAP Analysis (Collapsible)
-    if SHAP_AVAILABLE:
-        with st.expander("🧠 SHAP Feature Explanation Analysis", expanded=False):
-            st.markdown("### Understanding Model Decisions with SHAP")
-            st.info("SHAP (SHapley Additive exPlanations) shows how each feature contributes to individual predictions.")
-
-            # Sample selection for SHAP
-            sample_size = min(100, len(df))
-            sample_indices = np.random.choice(len(df), sample_size, replace=False)
-            X_sample = X.iloc[sample_indices]
-
-            with st.spinner("Calculating SHAP values... This may take a moment."):
-                try:
-                    explainer, shap_values = prepare_shap_values(model, X_sample)
-
-                    if shap_values is not None:
-                        # SHAP Summary Plot
-                        st.markdown("#### SHAP Summary Plot")
-                        fig_shap, ax = plt.subplots(figsize=(10, 6))
-
-                        # For multiclass, we'll show the summary for the El Niño class (index 2)
-                        shap.summary_plot(shap_values[2], X_sample, feature_names=feature_cols,
-                                        show=False, plot_type="bar")
-                        st.pyplot(fig_shap)
-
-                        st.markdown("#### SHAP Feature Impact")
-                        fig_shap2, ax2 = plt.subplots(figsize=(10, 8))
-                        shap.summary_plot(shap_values[2], X_sample, feature_names=feature_cols, show=False)
-                        st.pyplot(fig_shap2)
-
-                        st.success("✅ SHAP analysis complete! This shows which features most influence El Niño predictions.")
-
-                except Exception as e:
-                    st.error(f"Error calculating SHAP values: {e}")
-                    st.info("SHAP analysis requires compatible model types and sufficient memory.")
-    else:
-        st.info("💡 Install SHAP (`pip install shap`) to unlock advanced feature explanation capabilities!")
-
-    st.markdown("---")
-
-    # Section 4: Advanced Model Comparison
-    st.markdown("### 🏆 Advanced Model Performance Comparison")
-
-    comparison_years = st.slider("Comparison Year Range", 1982, 2025, (2000, 2020), key="comparison")
-
-    df_comparison = df[
-        (df["Date"].dt.year >= comparison_years[0]) &
-        (df["Date"].dt.year <= comparison_years[1])
-    ]
-
-    X_comp = df_comparison[feature_cols]
-    y_comp = df_comparison["True_Phase"]
-
-    if st.button("🚀 Run Model Comparison"):
-        models_to_compare = {
-            "Random Forest": RandomForestClassifier(random_state=42, n_estimators=100),
-            "SVM": SVC(random_state=42, probability=True),
-            "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000)
-        }
-
-        comparison_results = []
-
-        progress_bar = st.progress(0)
-        for i, (name, model_comp) in enumerate(models_to_compare.items()):
-            with st.spinner(f"Training {name}..."):
-                # Cross-validation
-                cv_scores = cross_val_score(model_comp, X_comp, y_comp, cv=5, scoring='accuracy')
-
-                comparison_results.append({
-                    "Model": name,
-                    "CV Mean Accuracy": cv_scores.mean(),
-                    "CV Std Dev": cv_scores.std(),
-                    "CV Score Range": f"{cv_scores.mean():.3f} ± {cv_scores.std():.3f}"
-                })
-
-                progress_bar.progress((i + 1) / len(models_to_compare))
-
-        # Display results
-        results_df = pd.DataFrame(comparison_results)
-        st.dataframe(results_df.round(4))
-
-        # Visualization
-        fig_comp = px.bar(results_df, x="Model", y="CV Mean Accuracy",
-                         error_y="CV Std Dev",
-                         title="Model Performance Comparison")
-        fig_comp.update_layout(yaxis_title="Cross-Validation Accuracy")
-        st.plotly_chart(fig_comp, use_container_width=True)
-
-        # Best model recommendation
-        best_model = results_df.loc[results_df["CV Mean Accuracy"].idxmax(), "Model"]
-        best_accuracy = results_df.loc[results_df["CV Mean Accuracy"].idxmax(), "CV Mean Accuracy"]
-        st.success(f"🏆 Best performing model: **{best_model}** with {best_accuracy:.1%} accuracy")
+elif page == "💡 Model Insights":
+    pass  # Remove this entire section
