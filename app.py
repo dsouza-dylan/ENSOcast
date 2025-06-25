@@ -26,7 +26,7 @@ except ImportError:
 
 # Page config with custom styling
 st.set_page_config(
-    page_title="ENSOcast - Climate Storytelling",
+    page_title="ENSOcast",
     page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -649,7 +649,6 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
     st.markdown(f"""
     <div class="insight-card">
         <h4>{selected_month} {selected_year}</h4>
-        <p>{era_story}</p>
     </div>
     """, unsafe_allow_html=True)
 
