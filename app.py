@@ -250,7 +250,6 @@ page = st.sidebar.radio(
         "🔮 The Oracle: Make Predictions",
         "📊 The Evidence: Historical Patterns",
         "🌡️ The Global View: Ocean Temperatures",
-        "🌡 Global SST Snapshot",
         "🔬 Behind the Scenes: Model Performance",
         "🛠️ Experiment: Train Your Own Model",
         "📈 Historical Trends",
@@ -662,7 +661,7 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
                 ax.text(189, 8, 'Niño 3.4 Region', color='black')
 
                 ax.set_title(f'Sea Surface Temperature - {selected_month} {selected_year}',
-                           fontsize=13, pad=15)
+                           fontsize=13, pad=10)
                 ax.set_xlabel("Longitude (°E)", fontsize=12)
                 ax.set_ylabel("Latitude (°N)", fontsize=12)
 
@@ -734,30 +733,6 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
             <p>This satellite view helps scientists understand how ENSO affects global weather patterns.</p>
         </div>
         """, unsafe_allow_html=True)
-
-elif page == "🌡 Global SST Snapshot":
-    st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
-    # st.markdown("### Global SST Snapshot")
-    selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
-    month_dict = {
-        "January": 1, "February": 2, "March": 3, "April": 4,
-        "May": 5, "June": 6, "July": 7, "August": 8,
-        "September": 9, "October": 10, "November": 11, "December": 12
-    }
-    selected_month = st.selectbox("Select Month", list(month_dict.keys()), index=7)
-    month_num = month_dict[selected_month]
-
-    try:
-        sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
-        fig, ax = plt.subplots(figsize=(12, 6))
-        sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
-        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
-        ax.text(189, 8, 'Niño 3.4 Region', color='black')
-        ax.set_xlabel("Longitude [°E]")
-        ax.set_ylabel("Latitude [°N]")
-        st.pyplot(fig)
-    except Exception as e:
-        st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
 
 elif page == "🔬 Behind the Scenes: Model Performance":
     st.markdown("""
@@ -1284,45 +1259,6 @@ elif page == "📈 Historical Trends":
     fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
     st.plotly_chart(fig_soi, use_container_width=True)
 
-elif page == "💡 Model Insights":
-    st.header("💡 Model Insights")
-
-    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
-
-    # Original accuracy metric (unchanged)
-    st.metric("Model Accuracy", f"{accuracy * 100:.2f}%")
-
-    # NEW: Cross-validation scores (added, not replacing)
-    with st.spinner("Calculating cross-validation scores..."):
-        cv_mean, cv_std = calculate_cross_validation_scores(X, y_true)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("CV Mean Accuracy", f"{cv_mean * 100:.2f}%")
-    with col2:
-        st.metric("CV Std Dev", f"±{cv_std * 100:.2f}%")
-
-    st.info(f"Cross-validation provides a more robust estimate: {cv_mean*100:.2f}% ± {cv_std*100:.2f}%")
-
-    st.markdown("### Classification Report")
-    report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
-    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"], columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
-
-    st.markdown("### Feature Importance")
-    importance_df = pd.DataFrame({
-        "Feature": feature_cols,
-        "Importance": model.feature_importances_
-    }).sort_values("Importance", ascending=False)
-    fig3 = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
-    st.plotly_chart(fig3, use_container_width=True)
-
-    st.markdown("### Download ENSO Predictions Results")
-    st.download_button("📥 Download CSV", data=df.to_csv(index=False), file_name="model_enso_predictions.csv", mime="text/csv")
-
 elif page == "🛠 Custom Model Training":
     st.header("🛠 Custom Model Training")
     st.markdown("### Experiment with Different Models")
@@ -1609,9 +1545,6 @@ elif page == "🔮 Advanced Predictions":
     4. **Use for planning** - These predictions can help with agricultural, business, or travel planning
     5. **Stay updated** - Climate patterns can change rapidly, so check back regularly
     """)
-
-elif page == "💡 Model Insights":
-    pass  # Remove this entire section
 
 
 # Footer with credits and additional info
