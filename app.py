@@ -659,10 +659,10 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
                 im = sst_slice.plot(ax=ax, cmap='coolwarm',
                                   cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 1})
                 ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1, linestyle='--'))
-                ax.text(190, 8, 'Niño 3.4 Region', color='black', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                ax.text(189.5, 6, 'Niño 3.4 Region', color='black', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
                 ax.set_title(f'Sea Surface Temperature - {selected_month} {selected_year}',
-                           fontsize=14, pad=15)
+                           fontsize=13, pad=15)
                 ax.set_xlabel("Longitude (°E)", fontsize=12)
                 ax.set_ylabel("Latitude (°N)", fontsize=12)
 
