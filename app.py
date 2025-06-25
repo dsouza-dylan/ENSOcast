@@ -249,8 +249,9 @@ page = st.sidebar.radio(
     ["🌟 Start Here: Understanding ENSO",
         "🔮 The Oracle: Make Predictions",
         "📊 The Evidence: Historical Patterns",
-        "🌡 Global SST Snapshot",
         "🌡️ The Global View: Ocean Temperatures",
+        "🌡 Global SST Snapshot",
+        "🌡 Global SST SnapshotvG",
         "🔬 Behind the Scenes: Model Performance",
         "🛠️ Experiment: Train Your Own Model",
         "📈 Historical Trends",
@@ -761,6 +762,165 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
         </div>
         """, unsafe_allow_html=True)
 
+elif page == "🌡 Global SST Snapshot":
+    st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
+    # st.markdown("### Global SST Snapshot")
+    selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
+    month_dict = {
+        "January": 1, "February": 2, "March": 3, "April": 4,
+        "May": 5, "June": 6, "July": 7, "August": 8,
+        "September": 9, "October": 10, "November": 11, "December": 12
+    }
+    selected_month = st.selectbox("Select Month", list(month_dict.keys()), index=7)
+    month_num = month_dict[selected_month]
+
+    try:
+        sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
+        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
+        ax.text(189, 8, 'Niño 3.4 Region', color='black')
+        ax.set_xlabel("Longitude [°E]")
+        ax.set_ylabel("Latitude [°N]")
+        st.pyplot(fig)
+    except Exception as e:
+        st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
+
+elif page == "🌡️ Global SST SnapshotvG":
+    st.markdown("""
+    <div class="story-card">
+        <h2>🌡️ Global Ocean Temperature Portrait</h2>
+        <p>Explore the Pacific Ocean's temperature patterns as seen from space. The Niño 3.4 region 
+        (highlighted in black) serves as ENSO's primary monitoring zone.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Enhanced date selection with better UX
+    col1, col2 = st.columns(2)
+    with col1:
+        selected_year = st.slider("🗓️ Select Year", min_value=1982, max_value=2024, value=2010)
+    with col2:
+        month_dict = {
+            "January": 1, "February": 2, "March": 3, "April": 4,
+            "May": 5, "June": 6, "July": 7, "August": 8,
+            "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        selected_month = st.selectbox("🌙 Select Month", list(month_dict.keys()), index=7)
+
+    month_num = month_dict[selected_month]
+
+    # Historical context (simplified from original)
+    if selected_year >= 2010:
+        era_context = "🛰️ **Modern Satellite Era** - High-resolution ocean monitoring"
+    elif selected_year >= 2000:
+        era_context = "📡 **Enhanced Observations** - Improved ENSO tracking"
+    else:
+        era_context = "🗿 **Early Satellite Records** - Foundation of climate monitoring"
+
+    st.markdown(f"""
+    <div class="insight-card">
+        <h4>{selected_month} {selected_year}</h4>
+        <p>{era_context}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # SST visualization with enhanced error handling
+    if sst_ds is not None:
+        try:
+            with st.spinner(f"🛰️ Loading satellite data for {selected_month} {selected_year}..."):
+                sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) &
+                                     (sst_ds['time.month'] == month_num))['sst']
+
+                fig, ax = plt.subplots(figsize=(14, 7))
+
+                # Better colormap and styling
+                im = sst_slice.plot(ax=ax, cmap='RdYlBu_r',
+                                  cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 0.8})
+
+                # Enhanced Niño 3.4 region highlighting
+                nino_rect = patches.Rectangle((190, -5), 50, 10,
+                                            edgecolor='black', facecolor='none',
+                                            linewidth=2, linestyle='--')
+                ax.add_patch(nino_rect)
+
+                # Clear annotation
+                ax.text(215, 8, '🎯 Niño 3.4 Region',
+                       ha='center', va='bottom', fontsize=11, fontweight='bold',
+                       bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
+
+                ax.set_title(f'🌊 Pacific Ocean Temperature - {selected_month} {selected_year}',
+                           fontsize=15, fontweight='bold', pad=15)
+                ax.set_xlabel("Longitude (°E)", fontsize=11)
+                ax.set_ylabel("Latitude (°N)", fontsize=11)
+
+                st.pyplot(fig)
+
+                # Key temperature statistics
+                avg_temp = float(sst_slice.mean())
+                max_temp = float(sst_slice.max())
+                min_temp = float(sst_slice.min())
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("🌡️ Average Temp", f"{avg_temp:.1f}°C")
+                with col2:
+                    st.metric("🔥 Maximum", f"{max_temp:.1f}°C")
+                with col3:
+                    st.metric("🧊 Minimum", f"{min_temp:.1f}°C")
+
+                # ENSO context if data available
+                if 'df' in locals() or 'df' in globals():
+                    try:
+                        date_context = df[df['Date'].dt.year == selected_year]
+                        if len(date_context) > 0:
+                            monthly_data = date_context[date_context['Date'].dt.month == month_num]
+                            if len(monthly_data) > 0:
+                                phase = monthly_data.iloc[0]['ENSO_Phase']
+                                oni_value = monthly_data.iloc[0]['ONI']
+
+                                phase_colors = {"El Niño": "#dc2626", "La Niña": "#2563eb", "Neutral": "#6b7280"}
+                                phase_emojis = {"El Niño": "🔴", "La Niña": "🔵", "Neutral": "⚪"}
+
+                                st.markdown(f"""
+                                <div class="insight-card" style="background: {phase_colors[phase]}15; border-left: 4px solid {phase_colors[phase]};">
+                                    <h4>{phase_emojis[phase]} ENSO Phase: <strong>{phase}</strong></h4>
+                                    <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
+                                </div>
+                                """, unsafe_allow_html=True)
+                    except:
+                        pass  # Silently handle missing ENSO data
+
+        except Exception as e:
+            st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}")
+            st.info("💡 Try selecting a different date or check your data connection.")
+
+            # Fallback explanation
+            st.markdown("""
+            <div class="story-card">
+                <h3>📊 What You Would See</h3>
+                <p>This visualization normally shows:</p>
+                <ul>
+                    <li>🔴 <strong>Warm colors (red/orange)</strong> - Higher sea surface temperatures</li>
+                    <li>🔵 <strong>Cool colors (blue)</strong> - Lower sea surface temperatures</li>
+                    <li>🎯 <strong>Black outlined box</strong> - Niño 3.4 monitoring region</li>
+                    <li>🌡️ <strong>Temperature scale</strong> - Typically ranging from 0°C to 30°C+</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("🛰️ Satellite data source not available")
+        st.markdown("""
+        <div class="story-card">
+            <h3>🌊 Ocean Temperature Patterns</h3>
+            <p>Sea surface temperature data reveals important climate patterns including:</p>
+            <ul>
+                <li>🌡️ <strong>Seasonal variations</strong> - Ocean temperatures change with seasons</li>
+                <li>🌊 <strong>ENSO signals</strong> - El Niño and La Niña events alter temperature patterns</li>
+                <li>🎯 <strong>Regional hotspots</strong> - Key areas like the Niño 3.4 region drive global weather</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
 elif page == "🔬 Behind the Scenes: Model Performance":
     st.markdown("""
     <div class="story-card">
@@ -1203,30 +1363,6 @@ elif page == "🛠️ Experiment: Train Your Own Model":
                 mime="text/csv",
                 help="Download detailed results including predictions and input features"
             )
-
-elif page == "🌡 Global SST Snapshot":
-    st.header("🌡 Global Sea Surface Temperature (SST) Snapshot")
-    # st.markdown("### Global SST Snapshot")
-    selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
-    month_dict = {
-        "January": 1, "February": 2, "March": 3, "April": 4,
-        "May": 5, "June": 6, "July": 7, "August": 8,
-        "September": 9, "October": 10, "November": 11, "December": 12
-    }
-    selected_month = st.selectbox("Select Month", list(month_dict.keys()), index=7)
-    month_num = month_dict[selected_month]
-
-    try:
-        sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) & (sst_ds['time.month'] == month_num))['sst']
-        fig, ax = plt.subplots(figsize=(12, 6))
-        sst_slice.plot(ax=ax, cmap='coolwarm', cbar_kwargs={"label": "°C"})
-        ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1))
-        ax.text(189, 8, 'Niño 3.4 Region', color='black')
-        ax.set_xlabel("Longitude [°E]")
-        ax.set_ylabel("Latitude [°N]")
-        st.pyplot(fig)
-    except Exception as e:
-        st.error(f"Failed to fetch SST data for {selected_month} {selected_year}. Error: {e}")
 
 elif page == "📈 Historical Trends":
     st.header("📈 Historical Trends")
