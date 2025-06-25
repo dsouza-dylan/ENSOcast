@@ -251,7 +251,7 @@ page = st.sidebar.radio(
         "📊 The Evidence: Historical Patterns",
         "🌡️ The Global View: Ocean Temperatures",
         "🌡 Global SST Snapshot",
-        "🌡 Global SST SnapshotvG",
+        "🌡️ Global SST SnapshotvG",
         "🔬 Behind the Scenes: Model Performance",
         "🛠️ Experiment: Train Your Own Model",
         "📈 Historical Trends",
