@@ -646,12 +646,6 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
 
     month_num = month_dict[selected_month]
 
-    st.markdown(f"""
-    <div class="insight-card">
-        <h4>{selected_month} {selected_year}</h4>
-    </div>
-    """, unsafe_allow_html=True)
-
     # SST visualization with enhanced storytelling
     if sst_ds is not None:
         try:
@@ -659,22 +653,22 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
                 sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) &
                                      (sst_ds['time.month'] == month_num))['sst']
 
-                fig, ax = plt.subplots(figsize=(15, 8))
+                fig, ax = plt.subplots(figsize=(12, 6))
 
                 # Enhanced colormap and styling
                 im = sst_slice.plot(ax=ax, cmap='coolwarm',
-                                  cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 0.8})
+                                  cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 1})
                 ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1, linestyle='--'))
-                ax.text(189, 8, 'Niño 3.4 Region', color='black', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                ax.text(190, 8, 'Niño 3.4 Region', color='black', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
-                ax.set_title(f'{selected_month} {selected_year}',
-                           fontsize=14, fontweight='bold', pad=15)
+                ax.set_title(f'Sea Surface Temperature - {selected_month} {selected_year}',
+                           fontsize=14, pad=15)
                 ax.set_xlabel("Longitude (°E)", fontsize=12)
                 ax.set_ylabel("Latitude (°N)", fontsize=12)
 
                 # Add temperature context
-                avg_temp = float(sst_slice.mean())
                 max_temp = float(sst_slice.max())
+                avg_temp = float(sst_slice.mean())
                 min_temp = float(sst_slice.min())
 
                 st.pyplot(fig)
