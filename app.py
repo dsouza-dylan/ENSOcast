@@ -677,15 +677,15 @@ elif page == "🌡️ The Global View: Ocean Temperatures":
                 with col1:
                     st.markdown(f"""
                     <div class="metric-container">
-                        <h3>🌡️ Average</h3>
-                        <h2>{avg_temp:.1f}°C</h2>
+                        <h3>🔥 Hottest</h3>
+                        <h2>{max_temp:.1f}°C</h2>
                     </div>
                     """, unsafe_allow_html=True)
                 with col2:
                     st.markdown(f"""
                     <div class="metric-container">
-                        <h3>🔥 Hottest</h3>
-                        <h2>{max_temp:.1f}°C</h2>
+                        <h3>🌡️ Average</h3>
+                        <h2>{avg_temp:.1f}°C</h2>
                     </div>
                     """, unsafe_allow_html=True)
                 with col3:
