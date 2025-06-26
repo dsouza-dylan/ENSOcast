@@ -247,14 +247,14 @@ st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
     ["🌟 Start Here: Understanding ENSO",
-        "🔮 The Oracle: Make Predictions",
-        "📊 The Evidence: Historical Patterns",
-        "🌡️ The Global View: Ocean Temperatures",
+     "🌡️ The Global View: Ocean Temperatures",
+     "📊 The Evidence: Historical Patterns",
+    "📈 Historical Trends",
         "🔬 Behind the Scenes: Model Performance",
+     "🛠 Custom Model Training",
         "🛠️ Experiment: Train Your Own Model",
-        "📈 Historical Trends",
-        "🔮 Advanced Predictions",
-        "🛠 Custom Model Training"],
+     "🔮 The Oracle: Make Predictions",
+        "🔮 Advanced Predictions"],
     index=0
 )
 st.sidebar.markdown("### ")
