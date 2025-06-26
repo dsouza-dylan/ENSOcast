@@ -1553,8 +1553,8 @@ st.markdown("""
 <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
            border-radius: 10px; color: white; margin-top: 2rem;">
     <h3>🌊 ENSOcast</h3>
-    <p>Crafted with ❤️ by Dylan Dsouza</p>
-    <p><em>Bringing climate science to life through storytelling and AI</em></p>
+    <p>Decoding El Niño–Southern Oscillation</p>
+    <p><em>Made by Dylan Dsouza</em></p>
     <small>Data sources: NOAA, ECMWF | Built with Streamlit, Plotly, and Scikit-learn</small>
 </div>
 """, unsafe_allow_html=True)
