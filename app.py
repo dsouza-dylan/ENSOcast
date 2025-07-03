@@ -17,13 +17,6 @@ import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
-# Try to import SHAP (optional dependency)
-try:
-    import shap
-    SHAP_AVAILABLE = True
-except ImportError:
-    SHAP_AVAILABLE = False
-
 # Page config with custom styling
 st.set_page_config(
     page_title="ENSOcast",
@@ -246,21 +239,19 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
-    ["🌟 Start Here: Understanding ENSO",
-     "🌡️ The Global View: Ocean Temperatures",
-     "📊 The Evidence: Historical Patterns",
-    "📈 Historical Trends",
-        "🔬 Behind the Scenes: Model Performance",
-        "🛠️ Experiment: Train Your Own Model",
-     "🔮 The Oracle: Make Predictions",
-        "🔮 Advanced Predictions"],
+    ["🌟 What is ENSO?",
+     "🌡️ Ocean Temperatures",
+     "📊 Past Patterns",
+        "🔬 Model Performance",
+        "🛠️ Train Model",
+        "🔮 Predict the Future"],
     index=0
 )
 st.sidebar.markdown("### ")
 st.sidebar.markdown("---")
 st.sidebar.markdown("Made by Dylan Dsouza")
 
-if page == "🌟 Start Here: Understanding ENSO":
+if page == "🌟 What is ENSO?":
     explain_enso_story()
 
     st.markdown("### 🎭 Meet the Three Characters")
@@ -318,125 +309,110 @@ if page == "🌟 Start Here: Understanding ENSO":
     </div>
     """, unsafe_allow_html=True)
 
-elif page == "🔮 The Oracle: Make Predictions":
+elif page == "🌡️ Ocean Temperatures":
     st.markdown("""
     <div class="story-card">
-        <h2>🔮 The ENSO Oracle</h2>
-        <p>Step into the role of a climate prophet. Our AI has studied decades of ocean and atmospheric data 
-        to peer into the future. What will the Pacific Ocean whisper about the months ahead?</p>
+        <h2>🌡️ The Global Ocean's Portrait</h2>
+        <p>Witness the Pacific Ocean as seen from space - a living, breathing entity whose temperature patterns 
+        tell the story of global climate. The Niño 3.4 region (our black box) is ENSO's heartbeat.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Enhanced prediction interface
-    st.markdown("### 🎯 Cast Your Prediction")
-
-    col1, col2 = st.columns([1, 1])
+    # Enhanced date selection
+    col1, col2 = st.columns(2)
     with col1:
-        target_year = st.number_input("🗓️ Which year calls to you?",
-                                     min_value=1982, max_value=2030, value=2024,
-                                     help="Choose any year from 1982 to 2030")
-
+        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
     with col2:
-        target_month = st.selectbox("🌙 Which month holds the mystery?", [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ], index=datetime.datetime.now().month-1)
+        month_dict = {
+            "January": 1, "February": 2, "March": 3, "April": 4,
+            "May": 5, "June": 6, "July": 7, "August": 8,
+            "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        selected_month = st.selectbox("Select Month",
+                                    list(month_dict.keys()), index=7)
 
-    predict_button = st.button("🔮 Reveal the Future", type="primary", use_container_width=True)
+    month_num = month_dict[selected_month]
 
-    if predict_button:
-        month_num = {
-            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-        }[target_month]
+    # SST visualization with enhanced storytelling
+    if sst_ds is not None:
+        try:
+            with st.spinner(f"Downloading data for {selected_month} {selected_year}..."):
+                sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) &
+                                     (sst_ds['time.month'] == month_num))['sst']
 
-        target_date = datetime.date(target_year, month_num, 1)
+                fig, ax = plt.subplots(figsize=(12, 6))
 
-        with st.spinner("🌊 The ocean spirits are consulting... Reading the signs..."):
-            try:
-                X_target = create_feature_for_date(target_date, df, feature_cols)
-                prediction = model.predict(X_target)[0]
-                probabilities = model.predict_proba(X_target)[0]
+                # Enhanced colormap and styling
+                im = sst_slice.plot(ax=ax, cmap='coolwarm',
+                                  cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 1})
+                ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1, linestyle='--'))
+                ax.text(189, 8, 'Niño 3.4 Region', color='black')
 
-                predicted_phase = label_map[prediction]
-                max_prob = max(probabilities)
+                ax.set_title(f'Sea Surface Temperature - {selected_month} {selected_year}',
+                           fontsize=13, pad=10)
+                ax.set_xlabel("Longitude (°E)", fontsize=12)
+                ax.set_ylabel("Latitude (°N)", fontsize=12)
 
-                # Dramatic reveal
-                st.balloons()
+                # Add temperature context
+                max_temp = float(sst_slice.max())
+                avg_temp = float(sst_slice.mean())
+                min_temp = float(sst_slice.min())
 
-                if predicted_phase == "El Niño":
+                st.pyplot(fig)
+
+                # Temperature insights
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    color = "#f6416c"
                     st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #ff9a8b 0%, #f6416c 100%);">
-                        <h1>🔴 El Niño Awakens</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean will run warm with El Niño's fire. 
-                        Expect the unexpected - flooding rains in some lands, drought in others.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
+                    <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                        <h3>🔥 Hottest</h3>
+                        <h2>{max_temp:.1f}°C</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    color = "#94a3b8"
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                        <h3>🌡️ Average</h3>
+                        <h2>{avg_temp:.1f}°C</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    color = "#3b82f6"
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                        <h3>🧊 Coolest</h3>
+                        <h2>{min_temp:.1f}°C</h2>
                     </div>
                     """, unsafe_allow_html=True)
 
-                elif predicted_phase == "La Niña":
-                    st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #a8edea 0%, #3b82f6 100%);">
-                        <h1>🔵 La Niña's Cool Embrace</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean will run cold under La Niña's influence. 
-                        Hurricanes may dance with greater fury, and weather patterns will intensify.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                # ENSO context for this specific date
+                date_context = df[df['Date'].dt.year == selected_year]
+                if len(date_context) > 0:
+                    monthly_data = date_context[date_context['Date'].dt.month == month_num]
+                    if len(monthly_data) > 0:
+                        phase = monthly_data.iloc[0]['ENSO_Phase']
+                        oni_value = monthly_data.iloc[0]['ONI']
 
-                else:
-                    st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d3 100%); color: #333;">
-                        <h1>⚪ The Neutral Path</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean rests in balance. Weather patterns will follow 
-                        their seasonal rhythms without dramatic shifts.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        phase_colors = {"El Niño": "#f6416c", "La Niña": "#3b82f6", "Neutral": "#94a3b8"}
+                        phase_emojis = {"El Niño": "🔴", "La Niña": "🔵", "Neutral": "⚪"}
 
-                st.markdown("### 🎲 The Full Prophecy")
+                        st.markdown(f"""
+                        <div class="insight-card" style="background: {phase_colors[phase]}20;">
+                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month</h3>
+                            <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
+                            <p>This ocean temperature pattern was {'typical' if phase == 'Neutral' else 'influenced by ' + phase + ' conditions'}.</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                # Probability visualization
-                prob_data = pd.DataFrame({
-                    'Phase': ['🔵 La Niña', '⚪ Neutral', '🔴 El Niño'],
-                    'Probability': probabilities,
-                    'Colors': ['#3b82f6', '#94a3b8', '#f6416c']
-                })
+        except Exception as e:
+            st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}: {e}")
+            st.info("💡 Try selecting a different date, or check your internet connection for satellite data.")
+    else:
+        st.warning("🛰️ Live satellite data unavailable.")
 
-                fig = px.bar(prob_data, x='Phase', y='Probability',
-                           color='Colors', color_discrete_map='identity',
-                           title="The Oracle's Vision - Detailed Probabilities")
-                fig.update_layout(showlegend=False, template="plotly_white")
-                fig.update_yaxis(title="Probability", tickformat='.0%')
-
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Confidence interpretation
-                if max_prob > 0.8:
-                    confidence_story = "🎯 **Crystal Clear Vision** - The signs are unmistakable"
-                elif max_prob > 0.6:
-                    confidence_story = "👁️ **Strong Intuition** - The patterns point clearly in one direction"
-                elif max_prob > 0.4:
-                    confidence_story = "🤔 **Clouded Vision** - The future remains uncertain, multiple paths possible"
-                else:
-                    confidence_story = "🌫️ **Misty Prophecy** - The ocean spirits are conflicted"
-
-                st.markdown(f"""
-                <div class="insight-card">
-                    {confidence_story}
-                    <br><br>
-                    <em>"The further we peer into time's river, the murkier the waters become. 
-                    Use this wisdom as a guide, not gospel."</em>
-                </div>
-                """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"❌ The oracle's vision is clouded: {e}")
-
-elif page == "📊 The Evidence: Historical Patterns":
+elif page == "📊 Past Patterns":
     st.markdown("""
     <div class="story-card">
         <h2>📊 Chronicles of the Past</h2>
@@ -699,120 +675,8 @@ elif page == "📊 The Evidence: Historical Patterns":
     fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
     st.plotly_chart(fig_soi, use_container_width=True)
 
-elif page == "🌡️ The Global View: Ocean Temperatures":
-    st.markdown("""
-    <div class="story-card">
-        <h2>🌡️ The Global Ocean's Portrait</h2>
-        <p>Witness the Pacific Ocean as seen from space - a living, breathing entity whose temperature patterns 
-        tell the story of global climate. The Niño 3.4 region (our black box) is ENSO's heartbeat.</p>
-    </div>
-    """, unsafe_allow_html=True)
 
-    # Enhanced date selection
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
-    with col2:
-        month_dict = {
-            "January": 1, "February": 2, "March": 3, "April": 4,
-            "May": 5, "June": 6, "July": 7, "August": 8,
-            "September": 9, "October": 10, "November": 11, "December": 12
-        }
-        selected_month = st.selectbox("Select Month",
-                                    list(month_dict.keys()), index=7)
-
-    month_num = month_dict[selected_month]
-
-    # SST visualization with enhanced storytelling
-    if sst_ds is not None:
-        try:
-            with st.spinner(f"Downloading data for {selected_month} {selected_year}..."):
-                sst_slice = sst_ds.sel(time=(sst_ds['time.year'] == selected_year) &
-                                     (sst_ds['time.month'] == month_num))['sst']
-
-                fig, ax = plt.subplots(figsize=(12, 6))
-
-                # Enhanced colormap and styling
-                im = sst_slice.plot(ax=ax, cmap='coolwarm',
-                                  cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 1})
-                ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1, linestyle='--'))
-                ax.text(189, 8, 'Niño 3.4 Region', color='black')
-
-                ax.set_title(f'Sea Surface Temperature - {selected_month} {selected_year}',
-                           fontsize=13, pad=10)
-                ax.set_xlabel("Longitude (°E)", fontsize=12)
-                ax.set_ylabel("Latitude (°N)", fontsize=12)
-
-                # Add temperature context
-                max_temp = float(sst_slice.max())
-                avg_temp = float(sst_slice.mean())
-                min_temp = float(sst_slice.min())
-
-                st.pyplot(fig)
-
-                # Temperature insights
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-container">
-                        <h3>🔥 Hottest</h3>
-                        <h2>{max_temp:.1f}°C</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-container">
-                        <h3>🌡️ Average</h3>
-                        <h2>{avg_temp:.1f}°C</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col3:
-                    st.markdown(f"""
-                    <div class="metric-container">
-                        <h3>🧊 Coolest</h3>
-                        <h2>{min_temp:.1f}°C</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                # ENSO context for this specific date
-                date_context = df[df['Date'].dt.year == selected_year]
-                if len(date_context) > 0:
-                    monthly_data = date_context[date_context['Date'].dt.month == month_num]
-                    if len(monthly_data) > 0:
-                        phase = monthly_data.iloc[0]['ENSO_Phase']
-                        oni_value = monthly_data.iloc[0]['ONI']
-
-                        phase_colors = {"El Niño": "#f6416c", "La Niña": "#3b82f6", "Neutral": "#94a3b8"}
-                        phase_emojis = {"El Niño": "🔴", "La Niña": "🔵", "Neutral": "⚪"}
-
-                        st.markdown(f"""
-                        <div class="insight-card" style="background: {phase_colors[phase]}20;">
-                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month</h3>
-                            <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
-                            <p>This ocean temperature pattern was {'typical' if phase == 'Neutral' else 'influenced by ' + phase + ' conditions'}.</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}: {e}")
-            st.info("💡 Try selecting a different date, or check your internet connection for satellite data.")
-    else:
-        st.warning("🛰️ Live satellite data unavailable. Here's what you would see:")
-        st.markdown("""
-        <div class="story-card">
-            <h3>🌊 Ocean Temperature Visualization</h3>
-            <p>Normally, you'd see a colorful map of the Pacific Ocean where:</p>
-            <ul>
-                <li>🔴 <strong>Red/Yellow areas</strong> show warmer waters (El Niño influence)</li>
-                <li>🔵 <strong>Blue areas</strong> show cooler waters (La Niña influence)</li>
-                <li>🎯 <strong>The black box</strong> highlights the Niño 3.4 region - ENSO's control center</li>
-                <li>🌡️ <strong>Temperature gradients</strong> reveal the ocean's story</li>
-            </ul>
-            <p>This satellite view helps scientists understand how ENSO affects global weather patterns.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-elif page == "🔬 Behind the Scenes: Model Performance":
+elif page == "🔬 Model Performance":
     st.markdown("""
     <div class="story-card">
         <h2>🔬 The Science Behind the Oracle</h2>
@@ -1017,7 +881,7 @@ elif page == "🔬 Behind the Scenes: Model Performance":
     </div>
     """, unsafe_allow_html=True)
 
-elif page == "🛠️ Experiment: Train Your Own Model":
+elif page == "🛠️ Train Model":
     st.markdown("""
     <div class="story-card">
         <h2>🛠️ Become a Climate AI Trainer</h2>
@@ -1255,89 +1119,7 @@ elif page == "🛠️ Experiment: Train Your Own Model":
                 help="Download detailed results including predictions and input features"
             )
 
-elif page == "📈 Historical Trends":
-    st.header("📈 Historical Trends")
-
-    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
-    selected_phases = st.multiselect(
-        "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
-        default=["La Niña", "Neutral", "El Niño"]
-    )
-
-    df_filtered = df[
-        (df["Date"].dt.year >= years[0]) &
-        (df["Date"].dt.year <= years[1]) &
-        (df["ENSO_Phase"].isin(selected_phases))
-    ]
-
-    st.markdown("### Sea Surface Temperature (SST) Timeline")
-
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-    fig.add_trace(
-        go.Scatter(
-            x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
-            name="Climatological SST (°C)",
-            line=dict(color='deepskyblue', dash='dot')
-        ),
-        secondary_y=True,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=df_filtered["Date"], y=df_filtered["SST"],
-            name="Observed SST (°C)",
-            line=dict(color='orange')
-        ),
-        secondary_y=False,
-    )
-
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Sea Surface Temperature (°C)",
-        legend=dict(x=0.01, y=1.1),
-        template="plotly_dark",
-        margin=dict(t=30, b=30)
-    )
-
-    fig.update_yaxes(title_text="Sea Surface Temperature (°C)", range=[24, 30], secondary_y=False)
-    fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels=False)
-
-    climatology_min = df_filtered["SST_Climatology"].min()
-    climatology_max = df_filtered["SST_Climatology"].max()
-
-    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
-                  annotation_text="Min. Climatological SST", annotation_position="bottom right")
-
-    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
-                  annotation_text="Max. Climatological SST", annotation_position="top right")
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Oceanic Niño Index (ONI) Timeline")
-    fig_oni = px.line(df_filtered, x="Date", y="ONI")
-    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
-    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
-                      annotation_text="El Niño Threshold", annotation_position="top right")
-    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
-                      annotation_text="La Niña Threshold", annotation_position="bottom right")
-
-    st.plotly_chart(fig_oni, use_container_width=True)
-
-    st.markdown("### Southern Oscillation Index (SOI) Timeline")
-    fig_soi = px.line(df_filtered, x="Date", y="SOI")
-    fig_soi.update_layout(
-        yaxis_title="Southern Oscillation Index",
-        template="plotly_dark",
-        margin=dict(t=30, b=30)
-    )
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
-    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
-    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
-    st.plotly_chart(fig_soi, use_container_width=True)
-
-elif page == "🔮 Advanced Predictions":
+elif page == "🔮 Predict the Future":
     st.header("🔮 Advanced ENSO Predictions")
 
     # Introduction section
@@ -1460,6 +1242,114 @@ elif page == "🔮 Advanced Predictions":
         except Exception as e:
             st.error(f"❌ Error making prediction: {e}")
             st.info("Please try a different date or check if the data is available for your selected time period.")
+
+    st.markdown("### 🎯 Cast Your Prediction")
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        target_year = st.number_input("🗓️ Which year calls to you?",
+                                     min_value=1982, max_value=2030, value=2024,
+                                     help="Choose any year from 1982 to 2030")
+
+    with col2:
+        target_month = st.selectbox("🌙 Which month holds the mystery?", [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ], index=datetime.datetime.now().month-1)
+
+    predict_button = st.button("🔮 Reveal the Future", type="primary", use_container_width=True)
+
+    if predict_button:
+        month_num = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        }[target_month]
+
+        target_date = datetime.date(target_year, month_num, 1)
+
+        with st.spinner("🌊 The ocean spirits are consulting... Reading the signs..."):
+            try:
+                X_target = create_feature_for_date(target_date, df, feature_cols)
+                prediction = model.predict(X_target)[0]
+                probabilities = model.predict_proba(X_target)[0]
+
+                predicted_phase = label_map[prediction]
+                max_prob = max(probabilities)
+
+                # Dramatic reveal
+                st.balloons()
+
+                if predicted_phase == "El Niño":
+                    st.markdown(f"""
+                    <div class="prediction-box" style="background: linear-gradient(135deg, #ff9a8b 0%, #f6416c 100%);">
+                        <h1>🔴 El Niño Awakens</h1>
+                        <h3>For {target_month} {target_year}</h3>
+                        <p style="font-size: 1.2em;">The ocean will run warm with El Niño's fire. 
+                        Expect the unexpected - flooding rains in some lands, drought in others.</p>
+                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                elif predicted_phase == "La Niña":
+                    st.markdown(f"""
+                    <div class="prediction-box" style="background: linear-gradient(135deg, #a8edea 0%, #3b82f6 100%);">
+                        <h1>🔵 La Niña's Cool Embrace</h1>
+                        <h3>For {target_month} {target_year}</h3>
+                        <p style="font-size: 1.2em;">The ocean will run cold under La Niña's influence. 
+                        Hurricanes may dance with greater fury, and weather patterns will intensify.</p>
+                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                else:
+                    st.markdown(f"""
+                    <div class="prediction-box" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d3 100%); color: #333;">
+                        <h1>⚪ The Neutral Path</h1>
+                        <h3>For {target_month} {target_year}</h3>
+                        <p style="font-size: 1.2em;">The ocean rests in balance. Weather patterns will follow 
+                        their seasonal rhythms without dramatic shifts.</p>
+                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("### 🎲 The Full Prophecy")
+
+                # Probability visualization
+                prob_data = pd.DataFrame({
+                    'Phase': ['🔵 La Niña', '⚪ Neutral', '🔴 El Niño'],
+                    'Probability': probabilities,
+                    'Colors': ['#3b82f6', '#94a3b8', '#f6416c']
+                })
+
+                fig = px.bar(prob_data, x='Phase', y='Probability',
+                           color='Colors', color_discrete_map='identity',
+                           title="The Oracle's Vision - Detailed Probabilities")
+                fig.update_layout(showlegend=False, template="plotly_white")
+                fig.update_yaxis(title="Probability", tickformat='.0%')
+
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Confidence interpretation
+                if max_prob > 0.8:
+                    confidence_story = "🎯 **Crystal Clear Vision** - The signs are unmistakable"
+                elif max_prob > 0.6:
+                    confidence_story = "👁️ **Strong Intuition** - The patterns point clearly in one direction"
+                elif max_prob > 0.4:
+                    confidence_story = "🤔 **Clouded Vision** - The future remains uncertain, multiple paths possible"
+                else:
+                    confidence_story = "🌫️ **Misty Prophecy** - The ocean spirits are conflicted"
+
+                st.markdown(f"""
+                <div class="insight-card">
+                    {confidence_story}
+                    <br><br>
+                    <em>"The further we peer into time's river, the murkier the waters become. 
+                    Use this wisdom as a guide, not gospel."</em>
+                </div>
+                """, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"❌ The oracle's vision is clouded: {e}")
 
     st.markdown("---")
 
