@@ -620,6 +620,85 @@ elif page == "📊 The Evidence: Historical Patterns":
     </div>
     """, unsafe_allow_html=True)
 
+years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
+    selected_phases = st.multiselect(
+        "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
+        default=["La Niña", "Neutral", "El Niño"]
+    )
+
+    df_filtered = df[
+        (df["Date"].dt.year >= years[0]) &
+        (df["Date"].dt.year <= years[1]) &
+        (df["ENSO_Phase"].isin(selected_phases))
+    ]
+
+    st.markdown("### Sea Surface Temperature (SST) Timeline")
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
+            name="Climatological SST (°C)",
+            line=dict(color='deepskyblue', dash='dot')
+        ),
+        secondary_y=True,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"], y=df_filtered["SST"],
+            name="Observed SST (°C)",
+            line=dict(color='orange')
+        ),
+        secondary_y=False,
+    )
+
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Sea Surface Temperature (°C)",
+        legend=dict(x=0.01, y=1.1),
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+
+    fig.update_yaxes(title_text="Sea Surface Temperature (°C)", range=[24, 30], secondary_y=False)
+    fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels=False)
+
+    climatology_min = df_filtered["SST_Climatology"].min()
+    climatology_max = df_filtered["SST_Climatology"].max()
+
+    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
+                  annotation_text="Min. Climatological SST", annotation_position="bottom right")
+
+    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
+                  annotation_text="Max. Climatological SST", annotation_position="top right")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Oceanic Niño Index (ONI) Timeline")
+    fig_oni = px.line(df_filtered, x="Date", y="ONI")
+    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
+                      annotation_text="El Niño Threshold", annotation_position="top right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
+                      annotation_text="La Niña Threshold", annotation_position="bottom right")
+
+    st.plotly_chart(fig_oni, use_container_width=True)
+
+    st.markdown("### Southern Oscillation Index (SOI) Timeline")
+    fig_soi = px.line(df_filtered, x="Date", y="SOI")
+    fig_soi.update_layout(
+        yaxis_title="Southern Oscillation Index",
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
+    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
+    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
+    st.plotly_chart(fig_soi, use_container_width=True)
+
 elif page == "🌡️ The Global View: Ocean Temperatures":
     st.markdown("""
     <div class="story-card">
