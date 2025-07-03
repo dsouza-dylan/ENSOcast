@@ -620,7 +620,7 @@ elif page == "📊 The Evidence: Historical Patterns":
     </div>
     """, unsafe_allow_html=True)
 
-years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
+    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
     selected_phases = st.multiselect(
         "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
         default=["La Niña", "Neutral", "El Niño"]
