@@ -251,7 +251,6 @@ page = st.sidebar.radio(
      "📊 The Evidence: Historical Patterns",
     "📈 Historical Trends",
         "🔬 Behind the Scenes: Model Performance",
-     "🛠 Custom Model Training",
         "🛠️ Experiment: Train Your Own Model",
      "🔮 The Oracle: Make Predictions",
         "🔮 Advanced Predictions"],
@@ -1258,77 +1257,6 @@ elif page == "📈 Historical Trends":
     fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
     fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
     st.plotly_chart(fig_soi, use_container_width=True)
-
-elif page == "🛠 Custom Model Training":
-    st.header("🛠 Custom Model Training")
-    st.markdown("### Experiment with Different Models")
-    st.info("Train and compare different machine learning models on filtered ENSO data to see which performs best for your specific time period and conditions.")
-
-    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
-    selected_phases = st.multiselect("Select ENSO Phases", ["La Niña", "Neutral", "El Niño"], default=["La Niña", "Neutral", "El Niño"])
-
-    filtered_df = df[
-        (df["Date"].dt.year >= years[0]) &
-        (df["Date"].dt.year <= years[1]) &
-        (df["True_Phase"].isin(selected_phases))
-    ]
-
-    X_custom = filtered_df[feature_cols]
-    y_custom = filtered_df["True_Phase"]
-
-    X_train, X_test, y_train, y_test = train_test_split(X_custom, y_custom, test_size=0.3, shuffle=False)
-
-    # NEW: Classifier selection (default unchanged)
-    classifier_options = {
-        "Random Forest": RandomForestClassifier(random_state=42),
-        "SVM": SVC(random_state=42, probability=True),
-        "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000)
-    }
-
-    selected_classifier = st.selectbox("Choose Classifier", list(classifier_options.keys()), index=0)
-    custom_model = classifier_options[selected_classifier]
-
-    # Brief explanation for each classifier
-    classifier_info = {
-        "Random Forest": "Ensemble method using multiple decision trees. Good for feature importance and handles non-linear relationships well.",
-        "SVM": "Support Vector Machine finds optimal decision boundaries. Good for high-dimensional data.",
-        "Logistic Regression": "Linear model for classification. Simple, interpretable, and fast."
-    }
-    st.info(classifier_info[selected_classifier])
-
-    custom_model.fit(X_train, y_train)
-    y_pred_custom = custom_model.predict(X_test)
-
-    custom_accuracy = accuracy_score(y_test, y_pred_custom)
-    st.metric("Custom Model Accuracy", f"{custom_accuracy * 100:.2f}%")
-
-    st.markdown("### Classification Report")
-    report = classification_report(y_test, y_pred_custom, output_dict=True)
-    st.dataframe(pd.DataFrame(report).transpose().round(2))
-
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred_custom, labels=["La Niña", "Neutral", "El Niño"])
-    st.dataframe(pd.DataFrame(cm, index=["True La Niña", "True Neutral", "True El Niño"],
-                              columns=["Pred La Niña", "Pred Neutral", "Pred El Niño"]))
-
-    # Feature importance (when available)
-    if hasattr(custom_model, 'feature_importances_'):
-        importance_df = pd.DataFrame({
-            "Feature": feature_cols,
-            "Importance": custom_model.feature_importances_
-        }).sort_values("Importance", ascending=False)
-
-        fig = px.bar(importance_df, x="Importance", y="Feature", orientation="h")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info(f"{selected_classifier} doesn't provide feature importance scores.")
-
-    X_custom = filtered_df[feature_cols]
-    y_pred_custom = model.predict(X_custom)
-    filtered_df["Predicted_Phase"] = [label_map[i] for i in y_pred_custom]
-
-    st.markdown("### Download Custom ENSO Prediction Results")
-    st.download_button("📥 Download CSV", filtered_df.to_csv(index=False), "custom_enso_predictions.csv", mime="text/csv")
 
 elif page == "🔮 Advanced Predictions":
     st.header("🔮 Advanced ENSO Predictions")
