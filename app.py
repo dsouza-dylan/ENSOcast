@@ -406,54 +406,53 @@ elif page == "🌡️ Ocean Temperatures":
                         </div>
                         """, unsafe_allow_html=True)
 
-                        st.markdown(f"""
-                        <div style="
-                            border-left: 6px solid {phase_colors[phase]};
-                            background-color: {phase_colors[phase]}10;
-                            padding: 1rem 1.2rem;
-                            border-radius: 0.5rem;
-                            font-family: 'Segoe UI', sans-serif;
-                        ">
-                            <h4 style="margin: 0 0 0.2rem 0;">{phase_emojis[phase]} <strong>{selected_month} {selected_year}</strong> — {phase}</h4>
-                            <p style="margin: 0; font-size: 0.95rem;">ONI: <strong>{oni_value:.2f}</strong></p>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        st.markdown(f"""
-                        <div style="
-                            text-align: center;
-                            padding: 1rem;
-                            border-radius: 0.75rem;
-                            background-color: {phase_colors[phase]}15;
-                            font-family: 'Segoe UI', sans-serif;
-                        ">
-                            <div style="font-size: 1.5rem;">{phase_emojis[phase]}</div>
-                            <div style="font-size: 1.1rem; font-weight: bold;">{selected_month} {selected_year}</div>
-                            <div style="font-size: 1rem; color: #333;">{phase}</div>
-                            <div style="font-size: 0.9rem;">ONI: <strong>{oni_value:.2f}</strong></div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                        # Replace all the multiple markdown blocks with this single, clean design:
 
                         st.markdown(f"""
                         <div style="
                             display: flex;
                             align-items: center;
-                            gap: 1rem;
-                            padding: 0.8rem 1.2rem;
-                            border-radius: 2rem;
-                            background-color: {phase_colors[phase]}15;
-                            font-family: 'Segoe UI', sans-serif;
-                            width: fit-content;
+                            justify-content: center;
+                            gap: 1.5rem;
+                            padding: 1.5rem 2rem;
+                            margin: 1rem 0;
+                            border-radius: 1rem;
+                            background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}30);
+                            border: 2px solid {phase_colors[phase]}40;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            max-width: 500px;
+                            margin-left: auto;
+                            margin-right: auto;
                         ">
-                            <div style="font-size: 1.5rem;">{phase_emojis[phase]}</div>
-                            <div>
-                                <div style="font-weight: bold;">{selected_month} {selected_year}</div>
-                                <div style="font-size: 0.9rem;">{phase} — ONI: <strong>{oni_value:.2f}</strong></div>
+                            <div style="
+                                font-size: 3rem;
+                                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+                            ">{phase_emojis[phase]}</div>
+                            <div style="text-align: left;">
+                                <div style="
+                                    font-size: 1.3rem;
+                                    font-weight: 700;
+                                    color: #2d3748;
+                                    margin-bottom: 0.2rem;
+                                ">{selected_month} {selected_year}</div>
+                                <div style="
+                                    font-size: 1.1rem;
+                                    color: {phase_colors[phase]};
+                                    font-weight: 600;
+                                    margin-bottom: 0.3rem;
+                                ">{phase} Phase</div>
+                                <div style="
+                                    font-size: 0.95rem;
+                                    color: #4a5568;
+                                    background: rgba(255,255,255,0.7);
+                                    padding: 0.25rem 0.75rem;
+                                    border-radius: 1rem;
+                                    display: inline-block;
+                                ">ONI: <strong>{oni_value:.2f}</strong></div>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-
 
 
         except Exception as e:
