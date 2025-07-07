@@ -315,7 +315,7 @@ elif page == "🌡️ Ocean Temperatures":
     st.markdown("""
     <div class="story-card">
         <h2>🌡️ Ocean Temperatures at a Glance</h2>
-        <p>Global sea surface temperatures tell us a story. In the heart of the Pacific, Niño 3.4 reveals the pulse of ENSO. This rectangular region, defined by the coordinates 5°N-5°S latitude and 170°W-120°W longitude, is where subtle changes in warmth tell us if El Niño or La Niña is forming.</p>
+        <p>Global sea surface temperatures tell us a story. In the heart of the Pacific, Niño 3.4 reveals the pulse of ENSO. Defined by the coordinates 5°N-5°S latitude and 170°W-120°W longitude, this rectangular region is where subtle changes in warmth tell us if El Niño or La Niña is forming.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -407,12 +407,18 @@ elif page == "🌡️ Ocean Temperatures":
                         """, unsafe_allow_html=True)
 
                         # Filter a small window around selected date for ONI trend (e.g., +/- 12 months)
-                        selected_date = pd.Timestamp(selected_year, month_num, 1)
+                        # Ensure 'Date' column is datetime
+                        df['Date'] = pd.to_datetime(df['Date'])
 
+                        # Create a proper timestamp from selected year and month
+                        selected_date = pd.Timestamp(year=selected_year, month=month_num, day=1)
+
+                        # Use pd.DateOffset to safely subtract/add months (new Pandas behavior)
                         oni_window = df[
                             (df['Date'] >= selected_date - pd.DateOffset(months=12)) &
                             (df['Date'] <= selected_date + pd.DateOffset(months=12))
                         ]
+
 
                         fig_trend = px.line(
                             oni_window, x="Date", y="ONI",
