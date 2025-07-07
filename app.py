@@ -419,6 +419,40 @@ elif page == "🌡️ Ocean Temperatures":
                         </div>
                         """, unsafe_allow_html=True)
 
+                        st.markdown(f"""
+                        <div style="
+                            text-align: center;
+                            padding: 1rem;
+                            border-radius: 0.75rem;
+                            background-color: {phase_colors[phase]}15;
+                            font-family: 'Segoe UI', sans-serif;
+                        ">
+                            <div style="font-size: 1.5rem;">{phase_emojis[phase]}</div>
+                            <div style="font-size: 1.1rem; font-weight: bold;">{selected_month} {selected_year}</div>
+                            <div style="font-size: 1rem; color: #333;">{phase}</div>
+                            <div style="font-size: 0.9rem;">ONI: <strong>{oni_value:.2f}</strong></div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+
+                        st.markdown(f"""
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 1rem;
+                            padding: 0.8rem 1.2rem;
+                            border-radius: 2rem;
+                            background-color: {phase_colors[phase]}15;
+                            font-family: 'Segoe UI', sans-serif;
+                            width: fit-content;
+                        ">
+                            <div style="font-size: 1.5rem;">{phase_emojis[phase]}</div>
+                            <div>
+                                <div style="font-weight: bold;">{selected_month} {selected_year}</div>
+                                <div style="font-size: 0.9rem;">{phase} — ONI: <strong>{oni_value:.2f}</strong></div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
 
 
