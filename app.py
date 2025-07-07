@@ -420,7 +420,6 @@ elif page == "🌡️ Ocean Temperatures":
                             background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}30);
                             border: 2px solid {phase_colors[phase]}40;
                             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                             max-width: 500px;
                             margin-left: auto;
                             margin-right: auto;
@@ -433,7 +432,6 @@ elif page == "🌡️ Ocean Temperatures":
                                 <div style="
                                     font-size: 1.3rem;
                                     font-weight: 700;
-                                    color: #2d3748;
                                     margin-bottom: 0.2rem;
                                 ">{selected_month} {selected_year}</div>
                                 <div style="
