@@ -406,41 +406,26 @@ elif page == "🌡️ Ocean Temperatures":
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # Filter a small window around selected date for ONI trend (e.g., +/- 12 months)
-                        # Ensure 'Date' column is datetime
-                        df['Date'] = pd.to_datetime(df['Date'])
+                        st.markdown(f"""
+                        <div style="
+                            background: {phase_colors[phase]}20;
+                            padding: 1.5rem 2rem;
+                            border-radius: 1rem;
+                            font-family: 'Segoe UI', sans-serif;
+                            color: #0f172a;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                            margin: 1rem 0;
+                        ">
+                            <h2 style="margin-bottom: 0.5rem; font-size: 1.75rem;">
+                                {phase_emojis[phase]} {selected_month} {selected_year} was a 
+                                <strong>{phase}</strong> month
+                            </h2>
+                            <p style="font-size: 1.25rem; margin: 0;">
+                                ONI Value: <strong>{oni_value:.2f}</strong>
+                            </p>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-                        # Create a proper timestamp from selected year and month
-                        selected_date = pd.Timestamp(year=selected_year, month=month_num, day=1)
-
-                        # Use pd.DateOffset to safely subtract/add months (new Pandas behavior)
-                        oni_window = df[
-                            (df['Date'] >= selected_date - pd.DateOffset(months=12)) &
-                            (df['Date'] <= selected_date + pd.DateOffset(months=12))
-                        ]
-
-
-                        fig_trend = px.line(
-                            oni_window, x="Date", y="ONI",
-                            title=None, height=200
-                        )
-
-                        fig_trend.add_hline(y=0.5, line_dash="dot", line_color="red")
-                        fig_trend.add_hline(y=-0.5, line_dash="dot", line_color="blue")
-
-                        fig_trend.add_vline(
-                            x=pd.Timestamp(selected_year, month_num, 1),
-                            line_color="white", line_dash="dash", annotation_text="Selected", annotation_position="top right"
-                        )
-
-                        fig_trend.update_layout(
-                            showlegend=False,
-                            margin=dict(t=10, b=10, l=30, r=30),
-                            template="plotly_dark",
-                            xaxis_title="", yaxis_title="ONI"
-                        )
-
-                        st.plotly_chart(fig_trend, use_container_width=True)
 
 
         except Exception as e:
