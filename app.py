@@ -407,9 +407,11 @@ elif page == "🌡️ Ocean Temperatures":
                         """, unsafe_allow_html=True)
 
                         # Filter a small window around selected date for ONI trend (e.g., +/- 12 months)
+                        selected_date = pd.Timestamp(selected_year, month_num, 1)
+
                         oni_window = df[
-                            (df['Date'] >= pd.Timestamp(selected_year, month_num, 1) - pd.DateOffset(months=12)) &
-                            (df['Date'] <= pd.Timestamp(selected_year, month_num, 1) + pd.DateOffset(months=12))
+                            (df['Date'] >= selected_date - pd.DateOffset(months=12)) &
+                            (df['Date'] <= selected_date + pd.DateOffset(months=12))
                         ]
 
                         fig_trend = px.line(
