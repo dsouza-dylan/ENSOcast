@@ -408,23 +408,17 @@ elif page == "🌡️ Ocean Temperatures":
 
                         st.markdown(f"""
                         <div style="
-                            background: {phase_colors[phase]}20;
-                            padding: 1.5rem 2rem;
-                            border-radius: 1rem;
+                            border-left: 6px solid {phase_colors[phase]};
+                            background-color: {phase_colors[phase]}10;
+                            padding: 1rem 1.2rem;
+                            border-radius: 0.5rem;
                             font-family: 'Segoe UI', sans-serif;
-                            color: #0f172a;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                            margin: 1rem 0;
                         ">
-                            <h2 style="margin-bottom: 0.5rem; font-size: 1.75rem;">
-                                {phase_emojis[phase]} {selected_month} {selected_year} was a 
-                                <strong>{phase}</strong> month
-                            </h2>
-                            <p style="font-size: 1.25rem; margin: 0;">
-                                ONI Value: <strong>{oni_value:.2f}</strong>
-                            </p>
+                            <h4 style="margin: 0 0 0.2rem 0;">{phase_emojis[phase]} <strong>{selected_month} {selected_year}</strong> — {phase}</h4>
+                            <p style="margin: 0; font-size: 0.95rem;">ONI: <strong>{oni_value:.2f}</strong></p>
                         </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
+
 
 
 
