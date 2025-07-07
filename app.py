@@ -38,10 +38,12 @@ st.markdown("""
     }
     
     .story-card {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+        font-size: 18px;
+        text-align: center;
+        color: black;
         padding: 1.5rem;
         border-radius: 15px;
-        border-left: 5px solid #667eea;
         margin: 1rem 0;
     }
     
@@ -312,9 +314,8 @@ if page == "🌟 What is ENSO?":
 elif page == "🌡️ Ocean Temperatures":
     st.markdown("""
     <div class="story-card">
-        <h2>🌡️ The Global Ocean's Portrait</h2>
-        <p>Witness the Pacific Ocean as seen from space - a living, breathing entity whose temperature patterns 
-        tell the story of global climate. The Niño 3.4 region (our black box) is ENSO's heartbeat.</p>
+        <h2>🌡️ Ocean Temperatures at a Glance</h2>
+        <p>Global sea surface temperatures tell us a story. In the heart of the Pacific, Niño 3.4 reveals the pulse of ENSO. This rectangular region, defined by the coordinates 5°N-5°S latitude and 170°W-120°W longitude, is where subtle changes in warmth tell us if El Niño or La Niña is forming.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -402,9 +403,37 @@ elif page == "🌡️ Ocean Temperatures":
                         <div class="insight-card" style="background: {phase_colors[phase]}20;">
                             <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month</h3>
                             <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
-                            <p>This ocean temperature pattern was {'typical' if phase == 'Neutral' else 'influenced by ' + phase + ' conditions'}.</p>
                         </div>
                         """, unsafe_allow_html=True)
+
+                        # Filter a small window around selected date for ONI trend (e.g., +/- 12 months)
+                        oni_window = df[
+                            (df['Date'] >= pd.Timestamp(selected_year, month_num, 1) - pd.DateOffset(months=12)) &
+                            (df['Date'] <= pd.Timestamp(selected_year, month_num, 1) + pd.DateOffset(months=12))
+                        ]
+
+                        fig_trend = px.line(
+                            oni_window, x="Date", y="ONI",
+                            title=None, height=200
+                        )
+
+                        fig_trend.add_hline(y=0.5, line_dash="dot", line_color="red")
+                        fig_trend.add_hline(y=-0.5, line_dash="dot", line_color="blue")
+
+                        fig_trend.add_vline(
+                            x=pd.Timestamp(selected_year, month_num, 1),
+                            line_color="white", line_dash="dash", annotation_text="Selected", annotation_position="top right"
+                        )
+
+                        fig_trend.update_layout(
+                            showlegend=False,
+                            margin=dict(t=10, b=10, l=30, r=30),
+                            template="plotly_dark",
+                            xaxis_title="", yaxis_title="ONI"
+                        )
+
+                        st.plotly_chart(fig_trend, use_container_width=True)
+
 
         except Exception as e:
             st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}: {e}")
