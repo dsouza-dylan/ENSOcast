@@ -68,6 +68,7 @@ st.markdown("""
     }
     
     .insight-card {
+        text-align: center;
         background: rgba(255,255,255,0.1);
         backdrop-filter: blur(10px);
         padding: 1.5rem;
@@ -399,58 +400,13 @@ elif page == "🌡️ Ocean Temperatures":
                         phase_colors = {"El Niño": "#f6416c", "La Niña": "#3b82f6", "Neutral": "#94a3b8"}
                         phase_emojis = {"El Niño": "🔴", "La Niña": "🔵", "Neutral": "⚪"}
 
-                        st.markdown(f"""
-                        <div class="insight-card" style="background: {phase_colors[phase]}20;">
-                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month with an ONI value of <strong>{oni_value:.2f}</strong></h3>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        # Replace all the multiple markdown blocks with this single, clean design:
+                        article = "an" if phase.startswith("El") else "a"
 
                         st.markdown(f"""
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 1.5rem;
-                            padding: 1.5rem 2rem;
-                            margin: 1rem 0;
-                            border-radius: 1rem;
-                            background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}30);
-                            border: 2px solid {phase_colors[phase]}40;
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                            max-width: 500px;
-                            margin-left: auto;
-                            margin-right: auto;
-                        ">
-                            <div style="
-                                font-size: 3rem;
-                                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-                            ">{phase_emojis[phase]}</div>
-                            <div style="text-align: left;">
-                                <div style="
-                                    font-size: 1.3rem;
-                                    font-weight: 700;
-                                    margin-bottom: 0.2rem;
-                                ">{selected_month} {selected_year}</div>
-                                <div style="
-                                    font-size: 1.1rem;
-                                    color: {phase_colors[phase]};
-                                    font-weight: 600;
-                                    margin-bottom: 0.3rem;
-                                ">{phase} Phase</div>
-                                <div style="
-                                    font-size: 0.95rem;
-                                    color: #4a5568;
-                                    background: rgba(255,255,255,0.7);
-                                    padding: 0.25rem 0.75rem;
-                                    border-radius: 1rem;
-                                    display: inline-block;
-                                ">ONI: <strong>{oni_value:.2f}</strong></div>
+                            <div class="insight-card" style="background: {phase_colors[phase]}20;">
+                                <h3>{phase_emojis[phase]} {selected_month} {selected_year} was {article} <strong>{phase}</strong> month with an ONI value of <strong>{oni_value:.2f}</strong></h3>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
+                            """, unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}: {e}")
