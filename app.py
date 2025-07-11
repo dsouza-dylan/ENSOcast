@@ -401,8 +401,7 @@ elif page == "🌡️ Ocean Temperatures":
 
                         st.markdown(f"""
                         <div class="insight-card" style="background: {phase_colors[phase]}20;">
-                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month</h3>
-                            <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
+                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month with an ONI value of <strong>{oni_value:.2f}</strong></h3>
                         </div>
                         """, unsafe_allow_html=True)
 
