@@ -359,6 +359,11 @@ elif page == "🌡️ Ocean Temperatures":
                 avg_temp = float(sst_slice.mean())
                 min_temp = float(sst_slice.min())
 
+                nino34 = sst_slice.sel(lat=slice(5, -5), lon=slice(190, 240))
+                nino34_avg = float(nino34.mean())
+                nino34_max = float(nino34.max())
+                nino34_min = float(nino34.min())
+
                 st.pyplot(fig)
 
                 # Temperature insights
@@ -385,6 +390,31 @@ elif page == "🌡️ Ocean Temperatures":
                     <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
                         <h3>🧊 Coolest</h3>
                         <h2>{min_temp:.1f}°C</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                # Niño 3.4 Region SST
+                st.markdown("### 🎯 Niño 3.4 Region (5°N–5°S, 170°W–120°W)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, #fbbf2420, #fbbf2440);">
+                        <h4>📈 Max Temp</h4>
+                        <h3>{nino34_max:.1f}°C</h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, #4ade8020, #4ade8040);">
+                        <h4>📊 Average Temp</h4>
+                        <h3>{nino34_avg:.1f}°C</h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, #60a5fa20, #60a5fa40);">
+                        <h4>📉 Min Temp</h4>
+                        <h3>{nino34_min:.1f}°C</h3>
                     </div>
                     """, unsafe_allow_html=True)
 
