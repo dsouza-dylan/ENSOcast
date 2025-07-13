@@ -544,10 +544,15 @@ elif page == "📊 Past Patterns":
         xaxis_title="Date",
         template="plotly_white",
         height=400,
+        margin=dict(t=30, b=30),
         hovermode='x unified',
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
 
+    fig.add_hrect(y0=27.75, y1=29.57, line_width=0, fillcolor="red", opacity=0.1)
+    fig.add_hrect(y0=24.69, y1=26.45, line_width=0, fillcolor="blue", opacity=0.1)
+    fig.add_hline(y=27.75, line_dash="dot", line_color="red", annotation_text="El Niño Conditions", annotation_position="top right")
+    fig.add_hline(y=26.45, line_dash="dot", line_color="blue", annotation_text="La Niña Conditions", annotation_position="bottom right")
     fig.update_yaxes(title_text="Sea Surface Temperature (°C)", secondary_y=False)
 
     st.plotly_chart(fig, use_container_width=True)
@@ -561,108 +566,102 @@ elif page == "📊 Past Patterns":
 
     st.markdown("---")
 
-    st.markdown("### 🌬️ Southern Oscillation Index (SOI): Pressure Patterns Driving ENSO")
+    st.markdown("### 🌀 Southern Oscillation Index (SOI): Pressure Patterns Driving ENSO")
 
     st.markdown("""
-    The Southern Oscillation Index (SOI) tracks pressure differences across the Pacific. It complements the ONI — together, they capture the full ocean–atmosphere dance behind ENSO.
+    The Southern Oscillation Index (SOI) is a standardized scale which tracks sea level pressure differences across the Pacific, specifically between Tahiti and Darwin, Australia. These pressure differences steer wind patterns and can trigger or suppress ENSO events.
     """)
+
     fig_soi = px.line(df_filtered, x="Date", y="SOI")
     fig_soi.update_layout(
         yaxis_title="Southern Oscillation Index",
         template="plotly_dark",
+        height=400,
         margin=dict(t=30, b=30)
     )
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
+    fig_soi.add_hline(y=0, line_dash="dot", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
+    fig_soi.add_hline(y=0, line_dash="dot", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
     fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
     fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
+
+    fig_soi.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"],
+            y=df_filtered["SOI"],
+            name="SOI",
+            showlegend=False,
+            line=dict(color='skyblue', width=2),
+            hovertemplate="<b>%{x}</b><br>SOI: %{y:.2f}<extra></extra>"
+        ),
+        secondary_y=False,
+    )
+
     st.plotly_chart(fig_soi, use_container_width=True)
 
     st.markdown("""
     <div class="insight-card" style="text-align: center;">
-        <p>🌀 <strong>High or low pressure?</strong> A deeply negative SOI supports El Niño conditions, while strong positive values align with La Niña.</p>
+        <h4>🌀 <strong>High or low pressure?</strong></h4>
+        <p>A deeply negative SOI value generally supports El Niño conditions, while strong positive values align with the onset of La Niña.</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-    st.markdown("### 🔴 Oceanic Niño Index (ONI): Quantifying ENSO")
+    st.markdown("### 📈 Oceanic Niño Index (ONI): Quantifying ENSO")
 
     st.markdown("""
-    The Oceanic Niño Index (ONI) measures temperature anomalies in the Niño 3.4 region. When it exceeds ±0.5°C for several months, it's a strong signal of El Niño or La Niña.
+    The Oceanic Niño Index (ONI) tracks the three-month moving average of SST anomalies in the Niño 3.4 region. Widely regarded as the gold standard, it serves as the primary benchmark for identifying and classifying ENSO events.
     """)
-    fig_oni = px.line(df_filtered, x="Date", y="ONI")
-    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
+    fig_oni = go.Figure()
+
+    fig_oni.add_trace(
+        go.Scatter(
+            x=df_filtered["Date"],
+            y=df_filtered["ONI"],
+            name="ONI",
+            line=dict(color='skyblue', width=2),
+            hovertemplate="<b>%{x|%b %Y}</b><br>ONI: %{y:.2f}<extra></extra>"
+        )
+    )
+
+    fig_oni.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Oceanic Niño Index",
+        height=400,
+        yaxis_range=[-2.7, 2.7],
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+
     fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
                       annotation_text="El Niño Threshold", annotation_position="top right")
     fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
                       annotation_text="La Niña Threshold", annotation_position="bottom right")
 
+    fig_oni.add_hrect(y0=0.5, y1=2.7, line_width=0, fillcolor="red", opacity=0.1)
+    fig_oni.add_hrect(y0=-2.7, y1=-0.5, line_width=0, fillcolor="blue", opacity=0.1)
+
     st.plotly_chart(fig_oni, use_container_width=True)
 
     st.markdown("""
     <div class="insight-card">
-        <p>🌡️ <strong>Temperature tells the tale:</strong> When the red line rises above the blue dotted line, 
-        El Niño is stirring. When it falls below, La Niña is taking hold.</p>
+        <h4>📈 <strong>Positive or negative anomaly?</strong></h4> 
+        <p>If ONI exceeds +0.5 for months, El Niño is underway; if it remains below -0.5, La Niña is active. Values between these thresholds indicate neutral conditions.</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-
-    st.markdown("### 🎭 The Rise and Fall of ENSO Phases")
-
-    st.markdown("""
-    This timeline shows how ENSO phases have unfolded month by month across your selected years. Each dot marks a moment when the Pacific leaned warm, cool, or stayed neutral.
-    """)
-
     # Create phase timeline
-    phase_numeric = df_filtered["ENSO_Phase"].map({"La Niña": -1, "Neutral": 0, "El Niño": 1})
+    phase_numeric = df_filtered["ENSO_Phase"].map({"El Niño": 1, "Neutral": 0, "La Niña": -1})
 
     fig_phases = go.Figure()
 
     # Color mapping for phases
-    colors = {"La Niña": "#3b82f6", "Neutral": "#94a3b8", "El Niño": "#f6416c"}
-
-    for phase in df_filtered["ENSO_Phase"].unique():
-        phase_data = df_filtered[df_filtered["ENSO_Phase"] == phase]
-        phase_values = phase_data["ENSO_Phase"].map({"La Niña": -1, "Neutral": 0, "El Niño": 1})
-
-        fig_phases.add_trace(go.Scatter(
-            x=phase_data["Date"],
-            y=phase_values,
-            mode='markers',
-            name=f"{phase}",
-            marker=dict(color=colors[phase], size=8, opacity=0.7),
-            hovertemplate=f"<b>{phase}</b><br>%{{x}}<extra></extra>"
-        ))
-
-    fig_phases.update_layout(
-        xaxis_title="Time",
-        yaxis=dict(
-            tickmode='array',
-            tickvals=[-1, 0, 1],
-            ticktext=['🔵 La Niña', '⚪ Neutral', '🔴 El Niño']
-        ),
-        template="plotly_white",
-        height=300,
-        showlegend=True
-    )
-
-    st.plotly_chart(fig_phases, use_container_width=True)
+    colors = {"La Niña": "#3b82f6", "Neutral": "gray", "El Niño": "#ef4444"}
+    st.markdown("### 🗓️ Seasonal Behavior of ENSO")
 
     st.markdown("""
-    <div class="insight-card" style="text-align: center;">
-        <p>📅 <strong>Seasonal Signature:</strong> Many ENSO events begin around mid-year and peak in the winter. Look for these seasonal fingerprints in the chart.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # Advanced pattern analysis
-    st.markdown("### 🗓️ When ENSO Phases Like to Show Up")
-
-    st.markdown("""
-    Are some months more likely to host an El Niño or La Niña? This bar chart shows the seasonal rhythm of each ENSO phase — a pattern your prediction model will soon learn from.
+    Some months are more likely to host El Niño or La Niña events. This bar chart reveals the seasonal rhythm of each ENSO phase.
     """)
     # Seasonal analysis
     df_filtered['Month'] = df_filtered['Date'].dt.month
@@ -672,6 +671,10 @@ elif page == "📊 Past Patterns":
         seasonal_patterns.reset_index().melt(id_vars='Month', var_name='Phase', value_name='Count'),
         x='Month', y='Count', color='Phase',
         color_discrete_map=colors
+    )
+
+    fig_seasonal.update_layout(
+        margin=dict(t=30, b=30),
     )
 
     fig_seasonal.update_xaxes(
@@ -685,8 +688,8 @@ elif page == "📊 Past Patterns":
 
     st.markdown("""
     <div class="insight-card">
-        <p>📅 <strong>Seasonal Secrets:</strong> ENSO phases have favorite seasons! Notice how some phases 
-        appear more often in certain months - this is one of the patterns our prediction model learned.</p>
+        <h4>🗓️ <strong>Which seasons matter most?</strong></h4> 
+        <p>ENSO seems to show asymmetric seasonal patterns — El Niño events cluster in late fall/winter months, while La Niña strengthens in winter and tends to persist longer. Neutral conditions are more common during spring/summer transition periods when phase changes typically occur.</p>
     </div>
     """, unsafe_allow_html=True)
 
