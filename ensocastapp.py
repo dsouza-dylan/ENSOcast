@@ -68,11 +68,11 @@ st.markdown("""
     }
     
     .insight-card {
+        text-align: center;
         background: rgba(255,255,255,0.1);
         backdrop-filter: blur(10px);
         padding: 1.5rem;
         border-radius: 15px;
-        border: 1px solid rgba(255,255,255,0.2);
         margin: 1rem 0;
     }
     
@@ -315,14 +315,14 @@ elif page == "🌡️ Ocean Temperatures":
     st.markdown("""
     <div class="story-card">
         <h2>🌡️ Ocean Temperatures at a Glance</h2>
-        <p>Global sea surface temperatures tell us a story. In the heart of the Pacific, Niño 3.4 reveals the pulse of ENSO. This rectangular region, defined by the coordinates 5°N-5°S latitude and 170°W-120°W longitude, is where subtle changes in warmth tell us if El Niño or La Niña is forming.</p>
+        <p>Global sea surface temperatures tell us a story. In the heart of the Pacific, Niño 3.4 reveals the pulse of ENSO. Defined by the coordinates 5°N-5°S latitude and 170°W-120°W longitude, this rectangular region is where subtle changes in warmth tell us if El Niño or La Niña is forming.</p>
     </div>
     """, unsafe_allow_html=True)
 
     # Enhanced date selection
     col1, col2 = st.columns(2)
     with col1:
-        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010)
+        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010, help="Drag to select the year you want to explore")
     with col2:
         month_dict = {
             "January": 1, "February": 2, "March": 3, "April": 4,
@@ -330,7 +330,7 @@ elif page == "🌡️ Ocean Temperatures":
             "September": 9, "October": 10, "November": 11, "December": 12
         }
         selected_month = st.selectbox("Select Month",
-                                    list(month_dict.keys()), index=7)
+                                    list(month_dict.keys()), index=7, help="Select the month you want to explore")
 
     month_num = month_dict[selected_month]
 
@@ -399,41 +399,13 @@ elif page == "🌡️ Ocean Temperatures":
                         phase_colors = {"El Niño": "#f6416c", "La Niña": "#3b82f6", "Neutral": "#94a3b8"}
                         phase_emojis = {"El Niño": "🔴", "La Niña": "🔵", "Neutral": "⚪"}
 
+                        article = "an" if phase.startswith("El") else "a"
+
                         st.markdown(f"""
-                        <div class="insight-card" style="background: {phase_colors[phase]}20;">
-                            <h3>{phase_emojis[phase]} {selected_month} {selected_year} was a <strong>{phase}</strong> month</h3>
-                            <p>ONI Value: <strong>{oni_value:.2f}</strong></p>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        # Filter a small window around selected date for ONI trend (e.g., +/- 12 months)
-                        oni_window = df[
-                            (df['Date'] >= pd.Timestamp(selected_year, month_num, 1) - pd.DateOffset(months=12)) &
-                            (df['Date'] <= pd.Timestamp(selected_year, month_num, 1) + pd.DateOffset(months=12))
-                        ]
-
-                        fig_trend = px.line(
-                            oni_window, x="Date", y="ONI",
-                            title=None, height=200
-                        )
-
-                        fig_trend.add_hline(y=0.5, line_dash="dot", line_color="red")
-                        fig_trend.add_hline(y=-0.5, line_dash="dot", line_color="blue")
-
-                        fig_trend.add_vline(
-                            x=pd.Timestamp(selected_year, month_num, 1),
-                            line_color="white", line_dash="dash", annotation_text="Selected", annotation_position="top right"
-                        )
-
-                        fig_trend.update_layout(
-                            showlegend=False,
-                            margin=dict(t=10, b=10, l=30, r=30),
-                            template="plotly_dark",
-                            xaxis_title="", yaxis_title="ONI"
-                        )
-
-                        st.plotly_chart(fig_trend, use_container_width=True)
-
+                            <div class="insight-card" style="background: {phase_colors[phase]}20;">
+                                <h3>{phase_emojis[phase]} {selected_month} {selected_year} was {article} <strong>{phase}</strong> month with an ONI value of <strong>{oni_value:.2f}</strong></h3>
+                            </div>
+                            """, unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"🌊 Unable to load ocean data for {selected_month} {selected_year}: {e}")
@@ -444,23 +416,26 @@ elif page == "🌡️ Ocean Temperatures":
 elif page == "📊 Past Patterns":
     st.markdown("""
     <div class="story-card">
-        <h2>📊 Chronicles of the Past</h2>
-        <p>Every climate prediction is built on the foundation of history. Let's explore the patterns 
-        hidden in decades of data - the rhythm of ENSO through time.</p>
+        <h2>📊 The Data Behind ENSO</h2>
+        <p>To understand the future of ENSO, we first need to examine its past. These charts show how ENSO phases have shifted over time, highlighting patterns, trends, and seasonal tendencies.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Interactive year selection with story
-    st.markdown("### 📊 Choose Your Era")
-    years = st.slider("Explore ENSO history across decades", 1982, 2024, (2000, 2020),
-                     help="Drag to select the time period you want to explore")
+    col1, col2 = st.columns(2) # Adjust width ratio as needed
 
-    selected_phases = st.multiselect(
-        "Which characters in the ENSO story interest you?",
-        ["La Niña", "Neutral", "El Niño"],
-        default=["La Niña", "Neutral", "El Niño"],
-        help="Select which ENSO phases to include in your analysis"
-    )
+    with col1:
+        years = st.slider(
+            "Select Year Range", 1982, 2024, (2000, 2020),
+            help="Drag to select the time period you want to explore"
+        )
+
+    with col2:
+        selected_phases = st.multiselect(
+            "Select ENSO Phases",
+            ["El Niño", "Neutral", "La Niña"],
+            default=["El Niño", "Neutral", "La Niña"],
+            help="Select which ENSO phases to include in your analysis"
+        )
 
     # Filter data
     df_filtered = df[
@@ -478,38 +453,67 @@ elif page == "📊 Past Patterns":
     total_months = len(df_filtered)
     years_span = years[1] - years[0] + 1
 
-    st.markdown(f"""
-    <div class="story-card">
-        <h3>🕰 Your Selected Timeline: {years[0]} - {years[1]}</h3>
-        <p>In these <strong>{years_span} years</strong> ({total_months} months), here's how ENSO spent its time:</p>
-    </div>
-    """, unsafe_allow_html=True)
+    if years[0] == years[1]:
+        st.markdown(f"""
+            <div class="story-card">
+                <h2>🕰️ Your Selected Timeline:</h2>
+                <h3>January {years[0]} – December {years[1]}</h3>
+                <p>In this <strong>1 year</strong>, here's how ENSO spent its time:</p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div class="story-card">
+                <h2>🕰️ Your Selected Timeline:</h2>
+                <h3>January {years[0]} – December {years[1]}</h3>
+                <p>In these <strong>{years_span} years</strong>, here's how ENSO spent its time:</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-    # Phase distribution with enhanced visuals
+
     col1, col2, col3 = st.columns(3)
     for i, (phase, count) in enumerate(phase_counts.items()):
         percentage = (count / total_months) * 100
         color = "#f6416c" if phase == "El Niño" else "#3b82f6" if phase == "La Niña" else "#94a3b8"
         emoji = "🔴" if phase == "El Niño" else "🔵" if phase == "La Niña" else "⚪"
 
-        if i == 0:
-            col = col1
-        elif i == 1:
-            col = col2
+        # Convert months to years and months
+        years = count // 12
+        months = count % 12
+
+        # Format string for years and months
+        if years > 0 and months > 0:
+            time_str = f"{years} year{'s' if years > 1 else ''} {months} month{'s' if months > 1 else ''}"
+        elif years > 0:
+            time_str = f"{years} year{'s' if years > 1 else ''}"
         else:
+            time_str = f"{months} month{'s' if months > 1 else ''}"
+
+        # Assign columns in your desired order
+        if i == 0:
+            col = col2
+        elif i == 1:
             col = col3
+        else:
+            col = col1
 
         with col:
             st.markdown(f"""
             <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
-                <h2>{emoji} {phase}</h2>
-                <h3>{count} months</h3>
+                <h3>{emoji} {phase}</h2>
+                <h4>{time_str}</h4>
                 <p>{percentage:.1f}% of the time</p>
             </div>
             """, unsafe_allow_html=True)
 
+
+    st.markdown("---")
+
     # Enhanced timeline visualizations
-    st.markdown("### 🌊 The Ocean's Temperature Story")
+    st.markdown("### 🌡️ Sea Surface Temperature (SST): The First ENSO Signal")
+
+    st.markdown("""
+    Sea Surface Temperature (SST) refers to the temperature of water measured at the ocean's surface. In the Niño 3.4 region, deviations from the climatological mean (the expected long-term seasonal average) provide early indications of ENSO development.""")
 
     # SST Timeline with narrative
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -519,7 +523,7 @@ elif page == "📊 Past Patterns":
             x=df_filtered["Date"],
             y=df_filtered["SST"],
             name="Ocean Temperature",
-            line=dict(color='#ff6b6b', width=2),
+            line=dict(color='skyblue', width=2),
             hovertemplate="<b>%{x}</b><br>Temperature: %{y:.2f}°C<extra></extra>"
         ),
         secondary_y=False,
@@ -530,15 +534,14 @@ elif page == "📊 Past Patterns":
             x=df_filtered["Date"],
             y=df_filtered["SST_Climatology"],
             name="Expected Temperature",
-            line=dict(color='#4ecdc4', dash='dot', width=2),
+            line=dict(color='orange', dash='dot', width=2),
             hovertemplate="<b>%{x}</b><br>Expected: %{y:.2f}°C<extra></extra>"
         ),
         secondary_y=False,
     )
 
     fig.update_layout(
-        title="The Pacific's Temperature Dance",
-        xaxis_title="Time",
+        xaxis_title="Date",
         template="plotly_white",
         height=400,
         hovermode='x unified',
@@ -550,14 +553,67 @@ elif page == "📊 Past Patterns":
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("""
+    <div class="insight-card" style="text-align: center;">
+        <h4>🌡️ <strong>Warm or cool waters?</strong></h4>
+        <p>SST anomalies above the climatological mean indicate the onset of El Niño, while those below suggest La Niña.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    st.markdown("### 🌬️ Southern Oscillation Index (SOI): Pressure Patterns Driving ENSO")
+
+    st.markdown("""
+    The Southern Oscillation Index (SOI) tracks pressure differences across the Pacific. It complements the ONI — together, they capture the full ocean–atmosphere dance behind ENSO.
+    """)
+    fig_soi = px.line(df_filtered, x="Date", y="SOI")
+    fig_soi.update_layout(
+        yaxis_title="Southern Oscillation Index",
+        template="plotly_dark",
+        margin=dict(t=30, b=30)
+    )
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
+    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
+    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
+    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
+    st.plotly_chart(fig_soi, use_container_width=True)
+
+    st.markdown("""
+    <div class="insight-card" style="text-align: center;">
+        <p>🌀 <strong>High or low pressure?</strong> A deeply negative SOI supports El Niño conditions, while strong positive values align with La Niña.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    st.markdown("### 🔴 Oceanic Niño Index (ONI): Quantifying ENSO")
+
+    st.markdown("""
+    The Oceanic Niño Index (ONI) measures temperature anomalies in the Niño 3.4 region. When it exceeds ±0.5°C for several months, it's a strong signal of El Niño or La Niña.
+    """)
+    fig_oni = px.line(df_filtered, x="Date", y="ONI")
+    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
+    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
+                      annotation_text="El Niño Threshold", annotation_position="top right")
+    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
+                      annotation_text="La Niña Threshold", annotation_position="bottom right")
+
+    st.plotly_chart(fig_oni, use_container_width=True)
+
+    st.markdown("""
     <div class="insight-card">
         <p>🌡️ <strong>Temperature tells the tale:</strong> When the red line rises above the blue dotted line, 
         El Niño is stirring. When it falls below, La Niña is taking hold.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ENSO Phase Timeline
-    st.markdown("### 🎭 The Three-Act Drama")
+    st.markdown("---")
+
+    st.markdown("### 🎭 The Rise and Fall of ENSO Phases")
+
+    st.markdown("""
+    This timeline shows how ENSO phases have unfolded month by month across your selected years. Each dot marks a moment when the Pacific leaned warm, cool, or stayed neutral.
+    """)
 
     # Create phase timeline
     phase_numeric = df_filtered["ENSO_Phase"].map({"La Niña": -1, "Neutral": 0, "El Niño": 1})
@@ -581,7 +637,6 @@ elif page == "📊 Past Patterns":
         ))
 
     fig_phases.update_layout(
-        title="ENSO's Dramatic Timeline",
         xaxis_title="Time",
         yaxis=dict(
             tickmode='array',
@@ -595,9 +650,20 @@ elif page == "📊 Past Patterns":
 
     st.plotly_chart(fig_phases, use_container_width=True)
 
-    # Advanced pattern analysis
-    st.markdown("### 🔍 Hidden Patterns Revealed")
+    st.markdown("""
+    <div class="insight-card" style="text-align: center;">
+        <p>📅 <strong>Seasonal Signature:</strong> Many ENSO events begin around mid-year and peak in the winter. Look for these seasonal fingerprints in the chart.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
+    st.markdown("---")
+
+    # Advanced pattern analysis
+    st.markdown("### 🗓️ When ENSO Phases Like to Show Up")
+
+    st.markdown("""
+    Are some months more likely to host an El Niño or La Niña? This bar chart shows the seasonal rhythm of each ENSO phase — a pattern your prediction model will soon learn from.
+    """)
     # Seasonal analysis
     df_filtered['Month'] = df_filtered['Date'].dt.month
     seasonal_patterns = df_filtered.groupby(['Month', 'ENSO_Phase']).size().unstack(fill_value=0)
@@ -605,7 +671,6 @@ elif page == "📊 Past Patterns":
     fig_seasonal = px.bar(
         seasonal_patterns.reset_index().melt(id_vars='Month', var_name='Phase', value_name='Count'),
         x='Month', y='Count', color='Phase',
-        title="When Do Different ENSO Phases Prefer to Appear?",
         color_discrete_map=colors
     )
 
@@ -624,86 +689,6 @@ elif page == "📊 Past Patterns":
         appear more often in certain months - this is one of the patterns our prediction model learned.</p>
     </div>
     """, unsafe_allow_html=True)
-
-    years = st.slider("Select Year Range", 1982, 2025, (2000, 2020))
-    selected_phases = st.multiselect(
-        "Select ENSO Phases", ["La Niña", "Neutral", "El Niño"],
-        default=["La Niña", "Neutral", "El Niño"]
-    )
-
-    df_filtered = df[
-        (df["Date"].dt.year >= years[0]) &
-        (df["Date"].dt.year <= years[1]) &
-        (df["ENSO_Phase"].isin(selected_phases))
-    ]
-
-    st.markdown("### Sea Surface Temperature (SST) Timeline")
-
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-    fig.add_trace(
-        go.Scatter(
-            x=df_filtered["Date"], y=df_filtered["SST_Climatology"],
-            name="Climatological SST (°C)",
-            line=dict(color='deepskyblue', dash='dot')
-        ),
-        secondary_y=True,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=df_filtered["Date"], y=df_filtered["SST"],
-            name="Observed SST (°C)",
-            line=dict(color='orange')
-        ),
-        secondary_y=False,
-    )
-
-    fig.update_layout(
-        xaxis_title="Date",
-        yaxis_title="Sea Surface Temperature (°C)",
-        legend=dict(x=0.01, y=1.1),
-        template="plotly_dark",
-        margin=dict(t=30, b=30)
-    )
-
-    fig.update_yaxes(title_text="Sea Surface Temperature (°C)", range=[24, 30], secondary_y=False)
-    fig.update_yaxes(range=[24, 30], secondary_y=True, showticklabels=False)
-
-    climatology_min = df_filtered["SST_Climatology"].min()
-    climatology_max = df_filtered["SST_Climatology"].max()
-
-    fig.add_hline(y=climatology_min, line_dash="dot", line_color="gray",
-                  annotation_text="Min. Climatological SST", annotation_position="bottom right")
-
-    fig.add_hline(y=climatology_max, line_dash="dot", line_color="gray",
-                  annotation_text="Max. Climatological SST", annotation_position="top right")
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Oceanic Niño Index (ONI) Timeline")
-    fig_oni = px.line(df_filtered, x="Date", y="ONI")
-    fig_oni.update_yaxes(title_text="Oceanic Niño Index")
-    fig_oni.add_hline(y=0.5, line_dash="dot", line_color="red",
-                      annotation_text="El Niño Threshold", annotation_position="top right")
-    fig_oni.add_hline(y=-0.5, line_dash="dot", line_color="blue",
-                      annotation_text="La Niña Threshold", annotation_position="bottom right")
-
-    st.plotly_chart(fig_oni, use_container_width=True)
-
-    st.markdown("### Southern Oscillation Index (SOI) Timeline")
-    fig_soi = px.line(df_filtered, x="Date", y="SOI")
-    fig_soi.update_layout(
-        yaxis_title="Southern Oscillation Index",
-        template="plotly_dark",
-        margin=dict(t=30, b=30)
-    )
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="La Niña Conditions", annotation_position="top right")
-    fig_soi.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="El Niño Conditions", annotation_position="bottom right")
-    fig_soi.add_hrect(y0=0, y1=3.2, line_width=0, fillcolor="blue", opacity=0.1)
-    fig_soi.add_hrect(y0=-3.2, y1=0, line_width=0, fillcolor="red", opacity=0.1)
-    st.plotly_chart(fig_soi, use_container_width=True)
-
 
 elif page == "🔬 Model Performance":
     st.markdown("""
@@ -1153,12 +1138,6 @@ elif page == "🔮 Predict the Future":
 
     # Introduction section
     st.markdown("""
-    ### What is ENSO?
-    The **El Niño-Southern Oscillation (ENSO)** is a climate pattern that affects weather worldwide. It has three phases:
-    - 🔵 **La Niña**: Cooler ocean temperatures, often bringing more hurricanes and drought
-    - ⚪ **Neutral**: Normal ocean temperatures and typical weather patterns  
-    - 🔴 **El Niño**: Warmer ocean temperatures, often causing flooding and unusual weather
-    
     ### How This Prediction Works
     Our AI model analyzes sea surface temperatures, atmospheric pressure, and historical patterns to predict which ENSO phase is most likely for any given month.
     """)
