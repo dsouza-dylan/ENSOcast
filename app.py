@@ -359,13 +359,6 @@ elif page == "🌡️ Ocean Temperatures":
                 avg_temp = float(sst_slice.mean())
                 min_temp = float(sst_slice.min())
 
-                nino34 = sst_slice.sel(lat=slice(5, -5), lon=slice(190, 240))  # 170°W = 190°E, 120°W = 240°E
-
-                max_temp = float(nino34.max())
-                avg_temp = float(nino34.mean())
-                min_temp = float(nino34.min())
-
-
                 st.pyplot(fig)
 
                 # Temperature insights
