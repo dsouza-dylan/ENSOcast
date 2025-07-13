@@ -115,62 +115,6 @@ def create_story_intro():
     </div>
     """, unsafe_allow_html=True)
 
-def explain_enso_story():
-    st.markdown("""
-    <div class="story-card">
-        <h2>🌍 The Story of ENSO</h2>
-        <p>Imagine the Pacific Ocean as Earth's heartbeat. Every few years, this heartbeat changes rhythm, 
-        sending ripples of change across continents. This is ENSO - the El Niño-Southern Oscillation.</p>
-        
-        <p>🔄 <strong>It's a conversation between ocean and atmosphere:</strong></p>
-        <ul>
-            <li>The ocean warms or cools</li>
-            <li>The atmosphere responds by shifting winds</li>
-            <li>These winds push ocean currents in new directions</li>
-            <li>Weather patterns worldwide transform</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-def create_phase_cards():
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("""
-        <div class="phase-card el-nino">
-            <h3>🔴 El Niño</h3>
-            <p><strong>"The Little Boy"</strong></p>
-            <p>Ocean warms up<br>
-            Brings floods to some,<br>
-            droughts to others</p>
-            <small>Occurs every 2-7 years</small>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("""
-        <div class="phase-card neutral">
-            <h3>⚪ Neutral</h3>
-            <p><strong>"The Quiet Phase"</strong></p>
-            <p>Ocean at normal temps<br>
-            Weather patterns<br>
-            follow usual seasons</p>
-            <small>Most common state</small>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="phase-card la-nina">
-            <h3>🔵 La Niña</h3>
-            <p><strong>"The Little Girl"</strong></p>
-            <p>Ocean cools down<br>
-            Intensifies hurricanes,<br>
-            brings extreme weather</p>
-            <small>Often follows El Niño</small>
-        </div>
-        """, unsafe_allow_html=True)
-
 def create_feature_for_date(target_date, df, feature_cols):
     """Create features for a specific date based on historical patterns"""
     if isinstance(target_date, str):
@@ -241,7 +185,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Tab Navigation")
 page = st.sidebar.radio(
     "",
-    ["🌟 What is ENSO?",
+    ["🌍 Understanding ENSO",
      "🌡️ Ocean Temperatures",
      "📊 Past Patterns",
         "🔬 Model Performance",
@@ -253,61 +197,75 @@ st.sidebar.markdown("### ")
 st.sidebar.markdown("---")
 st.sidebar.markdown("Made by Dylan Dsouza")
 
-if page == "🌟 What is ENSO?":
-    explain_enso_story()
+if page == "🌍 Understanding ENSO":
 
-    st.markdown("### 🎭 Meet the Three Characters")
-    create_phase_cards()
-
+    # 🌍 ENSO Intro
     st.markdown("""
     <div class="story-card">
-        <h3>🎯 Why Does This Matter?</h3>
-        <p>ENSO affects:</p>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div style="background: #ff6b6b; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                <h4>🌾 Agriculture</h4>
-                <p>Crop yields, drought, floods</p>
-            </div>
-            <div style="background: #4ecdc4; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                <h4>🌪️ Weather</h4>
-                <p>Hurricanes, storms, rainfall</p>
-            </div>
-            <div style="background: #45b7d1; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                <h4>💰 Economy</h4>
-                <p>Energy costs, insurance, trade</p>
-            </div>
-            <div style="background: #f9ca24; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
-                <h4>🌊 Marine Life</h4>
-                <p>Fish populations, coral health</p>
-            </div>
-        </div>
+        <h2>🌍 ENSO: The Pulse of the Pacific</h2>
+        <p>The Pacific Ocean's temperatures rise and fall like a gigantic pulse. These shifts acts as the Earth's heart
+        Think of the Pacific Ocean as Earth's giant heartbeat. Every few years, its rhythm shifts — 
+        warming or cooling the ocean and setting off atmospheric chain reactions across the globe. 
+        This powerful pulse is known as <strong>ENSO</strong>: the <em>El Niño–Southern Oscillation</em>.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Recent ENSO timeline
-    st.markdown("### 📅 ENSO's Recent Journey")
-    recent_data = df[df["Date"] >= (df["Date"].max() - pd.DateOffset(years=5))].copy()
+    col1, col2, col3 = st.columns(3)
 
-    fig = px.line(recent_data, x="Date", y="ONI",
-                  title="Oceanic Niño Index - The Last 5 Years",
-                  color_discrete_sequence=['#667eea'])
+    with col1:
+        color = "#f6416c"  # Red for El Niño
+        st.markdown(f"""
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
+            <h3>🔴 El Niño</h3>
+            <p><strong>"The Little Boy"</strong></p>
+            <p>Ocean warms up<br>Can bring floods to some,<br>droughts to others</p>
+            <small>Every 2–7 years</small>
+        </div>
+        """, unsafe_allow_html=True)
 
-    fig.add_hline(y=0.5, line_dash="dash", line_color="red",
-                  annotation_text="El Niño Threshold", annotation_position="top right")
-    fig.add_hline(y=-0.5, line_dash="dash", line_color="blue",
-                  annotation_text="La Niña Threshold", annotation_position="bottom right")
+    with col2:
+        color = "#94a3b8"  # Neutral tone
+        st.markdown(f"""
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
+            <h3>⚪ Neutral</h3>
+            <p><strong>"The Quiet Phase"</strong></p>
+            <p>Ocean stays near average<br>Weather patterns follow<br>typical seasonal norms</p>
+            <small>Most common state</small>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Add shaded regions
-    fig.add_hrect(y0=0.5, y1=3, fillcolor="red", opacity=0.1, line_width=0)
-    fig.add_hrect(y0=-3, y1=-0.5, fillcolor="blue", opacity=0.1, line_width=0)
-
-    fig.update_layout(height=400, template="plotly_white")
-    st.plotly_chart(fig, use_container_width=True)
+    with col3:
+        color = "#3b82f6"  # Blue for La Niña
+        st.markdown(f"""
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
+            <h3>🔵 La Niña</h3>
+            <p><strong>"The Little Girl"</strong></p>
+            <p>Ocean cools down<br>Often fuels hurricanes<br>and extreme weather</p>
+            <small>Frequently follows El Niño</small>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div class="insight-card">
-        <p>📈 <strong>Reading the story:</strong> When the line goes above +0.5, it's El Niño territory (red zone). 
-        Below -0.5 means La Niña conditions (blue zone). The line tells the story of ocean temperature changes!</p>
+    <div class="story-card">
+        <p>ENSO may begin in the Pacific, but its ripple effects reach around the world. It touches:</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div style="background: #ff6b6b; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <h4>🌾 Agriculture</h4>
+                <p>Shifts in rainfall impact crops, food supply, and farming economies</p>
+            </div>
+            <div style="background: #4ecdc4; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <h4>🌪️ Weather</h4>
+                <p>More storms here, less rain there — ENSO redistributes extreme events</p>
+            </div>
+            <div style="background: #45b7d1; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <h4>💰 Economy</h4>
+                <p>Changes in crop yield and energy demand affect markets and trade</p>
+            </div>
+            <div style="background: #f9ca24; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <h4>🌊 Marine Life</h4>
+                <p>Ocean warming shifts fish populations, harms coral reefs, and alters food webs</p>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -359,11 +317,6 @@ elif page == "🌡️ Ocean Temperatures":
                 avg_temp = float(sst_slice.mean())
                 min_temp = float(sst_slice.min())
 
-                nino34 = sst_slice.sel(lat=slice(5, -5), lon=slice(190, 240))
-                nino34_avg = float(nino34.mean())
-                nino34_max = float(nino34.max())
-                nino34_min = float(nino34.min())
-
                 st.pyplot(fig)
 
                 # Temperature insights
@@ -390,31 +343,6 @@ elif page == "🌡️ Ocean Temperatures":
                     <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
                         <h3>🧊 Coolest</h3>
                         <h2>{min_temp:.1f}°C</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                # Niño 3.4 Region SST
-                st.markdown("### 🎯 Niño 3.4 Region (5°N–5°S, 170°W–120°W)")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-container" style="background: linear-gradient(135deg, #fbbf2420, #fbbf2440);">
-                        <h4>📈 Max Temp</h4>
-                        <h3>{nino34_max:.1f}°C</h3>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-container" style="background: linear-gradient(135deg, #4ade8020, #4ade8040);">
-                        <h4>📊 Average Temp</h4>
-                        <h3>{nino34_avg:.1f}°C</h3>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col3:
-                    st.markdown(f"""
-                    <div class="metric-container" style="background: linear-gradient(135deg, #60a5fa20, #60a5fa40);">
-                        <h4>📉 Min Temp</h4>
-                        <h3>{nino34_min:.1f}°C</h3>
                     </div>
                     """, unsafe_allow_html=True)
 
