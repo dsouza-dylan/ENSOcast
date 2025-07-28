@@ -45,6 +45,17 @@ st.markdown("""
         margin: 1rem 0;
     }
     
+    .story-card p {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .description {
+        text-align: left;
+        padding-left: 2rem;
+    }
+    
+    
     .phase-card {
         padding: 1rem;
         border-radius: 10px;
@@ -96,10 +107,10 @@ def create_story_intro():
 def load_model_and_data():
     try:
         df = pd.read_csv("merged_enso.csv", parse_dates=["Date"])
-        model = joblib.load("enso_model_a_baseline.pkl")
+        model = joblib.load("ENSOcast_model.pkl")
         return df, model
     except FileNotFoundError:
-        st.error("Data files not found. Please ensure merged_enso.csv and enso_model_a_baseline.pkl are in the correct directory.")
+        st.error("Data files not found. Please ensure merged_enso.csv and ENSOcast_model.pkl are in the correct directory.")
         return None, None
 
 @st.cache_data
@@ -151,6 +162,8 @@ try:
         data_loaded = False
     else:
         sst_ds = load_sst_dataset()
+        df = df.sort_values("Date").reset_index(drop=True)
+        split_idx = int(0.8 * len(df))
 
         feature_cols = [
             "SST_Anomaly", "SOI", "SOI_lag_1", "SOI_lag_2", "SOI_lag_3",
@@ -158,12 +171,28 @@ try:
             "month_sin", "month_cos"
         ]
         X = df[feature_cols]
-        y_true = df["ENSO_Label"]
-        y_pred = model.predict(X)
+        y = df["ENSO_Label"]
+
+        X_train = X.iloc[:split_idx]
+        y_train = y.iloc[:split_idx]
+        X_test = X.iloc[split_idx:]
+        y_test = y.iloc[split_idx:]
+
+        rf = RandomForestClassifier(n_estimators=100, random_state=42)
+        rf.fit(X_train, y_train)
+
+        y_pred = rf.predict(X_test)
+
+        accuracy = accuracy_score(y_test, y_pred)
+
+        total_predictions = len(y_test)
+        correct_predictions = int(accuracy * total_predictions)
 
         label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
-        df["Predicted_Phase"] = [label_map[i] for i in y_pred]
-        df["True_Phase"] = [label_map[i] for i in y_true]
+
+        df.loc[df.index[split_idx:], "Predicted_Phase"] = [label_map[i] for i in y_pred]
+
+        df.loc[df.index[split_idx:], "True_Phase"] = [label_map[i] for i in y_test]
 except Exception as e:
     st.error(f"Error loading data: {e}")
     data_loaded = False
@@ -630,26 +659,42 @@ elif page == "📊 Past Patterns":
 elif page == "🔬 Model Performance":
     st.markdown("""
     <div class="story-card">
-        <h2>🔬 Understanding the Baseline Model</h2>
-        <p>For our baseline model, we leverage a <b>Random Forest Classifier</b>, exclusively trained on core atmospheric and
-        oceanographic indicators. These key features include: </p>
-        <ul>
-            <li><strong>SST Anomalies</strong> in the Niño 3.4 region</li>
-            <li><strong>Southern Oscillation Index (SOI)</strong> and its 1–3 month lags</li>
-            <li><strong>Lagged SST anomalies</strong></li>
-            <li><strong>Seasonal signals</strong> using sine and cosine transformations of the calendar month</li>
-        </ul>
+       <h2>🔬 Understanding the Baseline Model</h2>
+       <p>ENSOcast is a climate prediction tool that leverages a <strong>Random Forest Classifier</strong> to forecast monthly ENSO phases based on patterns in ocean temperatures, atmospheric pressure, and seasonal cycles.</p>
+    
+    <p class="description"><strong>Model Targets —</strong> ENSO phase classifications derived from the <strong>Oceanic Niño Index (ONI)</strong>:</p>
+    
+    <ul class="description" style="text-align: left;">
+        <li class="description"><strong>El Niño</strong></li>
+        <li class="description"><strong>La Niña</strong></li>
+        <li class="description"><strong>Neutral</strong></li>
+    </ul>
+    
+    <p class="description"><strong>Key Input Features —</strong> Critical climate indicators that capture ocean-atmosphere dynamics:</p>
+    
+    <ul class="description" style="text-align: left;">
+       <li><strong>Sea Surface Temperatures (SST)</strong> in the Niño 3.4 region, the primary oceanic signal of ENSO variability</li>
+       <li class="description"><strong>Southern Oscillation Index (SOI)</strong>, measuring atmospheric pressure differences across the Pacific</li>
+    </ul>
+    
+    <p class="description"><strong>Advanced Feature Engineering —</strong> To capture temporal patterns and seasonal dependencies, ENSOcast applies several preprocessing techniques:</p>
+    
+    <ul class="description" style="text-align: left;">
+       <li>Calculating <strong>SST anomalies</strong> by eliminating the long-term climatological baseline</li>
+       <li>Creating <strong>lagged variables</strong> (1–3 months) for both SOI and SST anomalies to capture predictive relationships</li>
+       <li>Encoding <strong>seasonal cycles</strong> using sine and cosine transformations of calendar months</li>
+    </ul>
+    
+    <p class="description"><strong>Validation Approach —</strong> ENSOcast is trained on the earliest 80% of historical ENSO data and achieves <strong>83% accuracy</strong> when predicting the most recent 20% of observations.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
-
-    st.markdown("### 🎯 The Report Card")
-
     col1, col2, col3 = st.columns(3)
+
     with col1:
+        color = "#94a3b8"
         st.markdown(f"""
-        <div class="metric-container">
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
             <h3>🎯 Overall Accuracy</h3>
             <h2>{accuracy:.0%}</h2>
             <p>Correct predictions</p>
@@ -657,10 +702,8 @@ elif page == "🔬 Model Performance":
         """, unsafe_allow_html=True)
 
     with col2:
-        total_predictions = len(df)
-        correct_predictions = int(accuracy * total_predictions)
         st.markdown(f"""
-        <div class="metric-container">
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
             <h3>📊 Total Tested</h3>
             <h2>{total_predictions:,}</h2>
             <p>Months analyzed</p>
@@ -669,39 +712,19 @@ elif page == "🔬 Model Performance":
 
     with col3:
         st.markdown(f"""
-        <div class="metric-container">
+        <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
             <h3>✅ Success Stories</h3>
             <h2>{correct_predictions:,}</h2>
             <p>Months predicted correctly</p>
         </div>
         """, unsafe_allow_html=True)
 
-    # Performance story
-    if accuracy > 0.8:
-        performance_story = "🌟 **Excellent Performance** - Our model is a skilled climate detective!"
-    elif accuracy > 0.7:
-        performance_story = "👍 **Good Performance** - Reliable predictions with room for improvement"
-    elif accuracy > 0.6:
-        performance_story = "🤔 **Moderate Performance** - Better than guessing, but climate is complex"
-    else:
-        performance_story = "🔧 **Needs Improvement** - Climate prediction remains challenging"
-
-    st.markdown(f"""
-    <div class="insight-card">
-        <h3>{performance_story}</h3>
-        <p>Out of {total_predictions:,} months of historical data, our AI correctly identified the ENSO phase 
-        {correct_predictions:,} times. That means it was right {accuracy:.0%} of the time!</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Detailed performance breakdown
-    st.markdown("### 📋 The Detailed Scorecard")
-
     # Classification report in a more narrative format
     report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
 
-    phases = ["La Niña", "Neutral", "El Niño"]
-    phase_emojis = {"La Niña": "🔵", "Neutral": "⚪", "El Niño": "🔴"}
+    phases = ["El Niño", "Neutral", "La Niña"]
+    phase_colors = {"El Niño": "#f6416c", "Neutral": "#94a3b8", "La Niña": "#3b82f6"}
+    phase_emojis = {"El Niño": "🔴", "Neutral": "⚪", "La Niña": "🔵"}
 
     for phase in phases:
         if phase in report:
@@ -711,41 +734,42 @@ elif page == "🔬 Model Performance":
             support = int(report[phase]['support'])
 
             st.markdown(f"""
-            <div class="insight-card">
+            <div class="insight-card" style="background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}40);">
                 <h4>{phase_emojis[phase]} {phase} Performance</h4>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                     <div>
                         <strong>Precision:</strong> {precision:.0%}<br>
-                        <small>When model says "{phase}", it's right {precision:.0%} of the time</small>
+                        <small>When the model predicts "{phase}", it is correct {precision:.0%} of the time.</small>
                     </div>
                     <div>
                         <strong>Recall:</strong> {recall:.0%}<br>
-                        <small>Model catches {recall:.0%} of actual {phase} events</small>
+                        <small>The model correctly identifies {recall:.0%} of actual {phase} months.</small>
                     </div>
                     <div>
                         <strong>F1-Score:</strong> {f1:.0%}<br>
-                        <small>Balanced performance measure</small>
+                        <small>This is a balanced metric combining precision and recall.</small>
                     </div>
                     <div>
                         <strong>Sample Size:</strong> {support}<br>
-                        <small>Months of {phase} in our data</small>
+                        <small>In the dataset, {support} months were labeled as {phase}.</small>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-    # Confusion matrix as a story
-    st.markdown("### 🤷 Where the Model Gets Confused")
+    st.markdown("---")
 
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["La Niña", "Neutral", "El Niño"])
+    # Confusion matrix as a story
+    st.markdown("### 🧮 Confusion Matrix")
+
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "Neutral", "La Niña"])
 
     # Create a heatmap-style visualization
     fig_cm = px.imshow(cm,
                        labels=dict(x="Predicted Phase", y="Actual Phase", color="Count"),
-                       x=["🔵 La Niña", "⚪ Neutral", "🔴 El Niño"],
-                       y=["🔵 La Niña", "⚪ Neutral", "🔴 El Niño"],
-                       color_continuous_scale="Blues",
-                       title="Confusion Matrix: Where Predictions Go Wrong")
+                       x=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                       y=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                       color_continuous_scale="Reds")
 
     # Add text annotations
     for i in range(len(cm)):
@@ -757,10 +781,12 @@ elif page == "🔬 Model Performance":
 
     st.markdown("""
     <div class="insight-card">
-        <p>📊 <strong>Reading the confusion:</strong> The diagonal shows correct predictions (darker = better). 
+        <p>🧮 <strong>Reading the confusion:</strong> The diagonal shows correct predictions (darker = better). 
         Off-diagonal squares show mistakes - when the model confused one phase for another.</p>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("---")
 
     # Feature importance story
     st.markdown("### 🔍 What the Model Pays Attention To")
@@ -807,35 +833,6 @@ elif page == "🔬 Model Performance":
                 <p>This factor accounts for {importance:.1%} of the model's decision-making process.</p>
             </div>
             """, unsafe_allow_html=True)
-
-    # Model limitations and honesty
-    st.markdown("### 🚧 The Model's Limitations")
-    st.markdown("""
-    <div class="story-card">
-        <h4>🤖 What Our AI Can and Cannot Do</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-            <div>
-                <h5>✅ Strengths</h5>
-                <ul>
-                    <li>Learns from decades of data</li>
-                    <li>Considers multiple climate factors</li>
-                    <li>Provides probability estimates</li>
-                    <li>Fast and consistent predictions</li>
-                </ul>
-            </div>
-            <div>
-                <h5>⚠️ Limitations</h5>
-                <ul>
-                    <li>Climate is inherently unpredictable</li>
-                    <li>Rare events are hard to forecast</li>
-                    <li>Models can't capture everything</li>
-                    <li>Accuracy decreases with time</li>
-                </ul>
-            </div>
-        </div>
-        <p><em>💡 Remember: Even the best climate models are tools to help us understand probabilities, not crystal balls that guarantee the future.</em></p>
-    </div>
-    """, unsafe_allow_html=True)
 
 elif page == "🛠️ Train Model":
     st.markdown("""
@@ -991,7 +988,7 @@ elif page == "🛠️ Train Model":
                     support = int(report[phase]['support'])
 
                     st.markdown(f"""
-                    <div class="insight-card">
+                    <div class="insight-card" style="background: linear-gradient(135deg, {color}20, {color}40);>
                         <h4>{phase_emojis[phase]} {phase} Results</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
                             <div><strong>Precision:</strong> {precision:.0%}</div>
