@@ -839,7 +839,7 @@ elif page == "🔬 Model Performance":
 elif page == "🛠️ Train Custom Model":
     st.markdown("""
     <div class="story-card">
-        <h2>🛠️ Train a Custom ENSO Predictor</h2>
+        <h2>🛠️ Train a Custom ENSO Classifier</h2>
         <p>Leverage the feature engineering of ENSOcast to experiment with ENSO phases and historical time periods as you train a custom <strong>Random Forest</strong> model and evaluate its predictions.</p>
     </div>
     """, unsafe_allow_html=True)
