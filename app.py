@@ -209,10 +209,9 @@ page = st.sidebar.radio(
     "",
     ["🌍 Understanding ENSO",
      "🌡️ Ocean Temperatures",
-     "📊 Past Patterns",
+     "📊 Explore Past Patterns",
         "🔬 Model Performance",
-        "🛠️ Train Model",
-        "🔮 Predict the Future"],
+        "🛠️ Train Custom Model"],
     index=0
 )
 st.sidebar.markdown("---")
@@ -320,7 +319,6 @@ elif page == "🌡️ Ocean Temperatures":
 
                 fig, ax = plt.subplots(figsize=(12, 6))
 
-                # Enhanced colormap and styling
                 im = sst_slice.plot(ax=ax, cmap='coolwarm',
                                   cbar_kwargs={"label": "Sea Surface Temperature (°C)", "shrink": 1})
                 ax.add_patch(patches.Rectangle((190, -5), 50, 10, edgecolor='black', facecolor='none', linewidth=1, linestyle='--'))
@@ -387,7 +385,7 @@ elif page == "🌡️ Ocean Temperatures":
     else:
         st.warning("🛰️ Live satellite data unavailable.")
 
-elif page == "📊 Past Patterns":
+elif page == "📊 Explore Past Patterns":
     st.markdown("""
     <div class="story-card">
         <h2>📊 The Data Behind ENSO</h2>
@@ -411,18 +409,25 @@ elif page == "📊 Past Patterns":
             help="Select which ENSO phases to include in your analysis"
         )
 
-    df_filtered = df[
+    df_date_filtered = df[
         (df["Date"].dt.year >= years[0]) &
-        (df["Date"].dt.year <= years[1]) &
-        (df["ENSO_Phase"].isin(selected_phases))
+        (df["Date"].dt.year <= years[1])
     ]
 
-    if len(df_filtered) == 0:
-        st.warning("No data available for your selected criteria. Try adjusting your filters.")
+    total_months = len(df_date_filtered)
+
+    all_phase_counts = df_date_filtered["ENSO_Phase"].value_counts()
+
+    if total_months == 0:
+        st.warning("No data available for your selected time period.")
         st.stop()
 
-    phase_counts = df_filtered["ENSO_Phase"].value_counts()
-    total_months = len(df_filtered)
+    available_phases = set(df_date_filtered["ENSO_Phase"].unique())
+    selected_phases_available = [phase for phase in selected_phases if phase in available_phases]
+
+    if len(selected_phases_available) == 0:
+        st.warning("None of the selected ENSO phases are available for your selected time period.")
+        st.stop()
     years_span = years[1] - years[0] + 1
 
     if years[0] == years[1]:
@@ -443,27 +448,27 @@ elif page == "📊 Past Patterns":
         """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
-    for i, (phase, count) in enumerate(phase_counts.items()):
+
+    for i, phase in enumerate(selected_phases_available):
+        count = all_phase_counts.get(phase, 0)
+
         percentage = (count / total_months) * 100
         color = "#f6416c" if phase == "El Niño" else "#3b82f6" if phase == "La Niña" else "#94a3b8"
         emoji = "🔴" if phase == "El Niño" else "🔵" if phase == "La Niña" else "⚪"
 
-        years = count // 12
+        years_duration = count // 12
         months = count % 12
 
-        if years > 0 and months > 0:
-            time_str = f"{years} year{'s' if years > 1 else ''} {months} month{'s' if months > 1 else ''}"
-        elif years > 0:
-            time_str = f"{years} year{'s' if years > 1 else ''}"
+        if years_duration > 0 and months > 0:
+            time_str = f"{years_duration} year{'s' if years_duration > 1 else ''} {months} month{'s' if months > 1 else ''}"
+        elif years_duration > 0:
+            time_str = f"{years_duration} year{'s' if years_duration > 1 else ''}"
         else:
             time_str = f"{months} month{'s' if months > 1 else ''}"
 
-        if i == 0:
-            col = col2
-        elif i == 1:
-            col = col3
-        else:
-            col = col1
+        phase_columns = {"El Niño": col1, "Neutral": col2, "La Niña": col3}
+
+        col = phase_columns[phase]
 
         with col:
             st.markdown(f"""
@@ -475,6 +480,11 @@ elif page == "📊 Past Patterns":
             """, unsafe_allow_html=True)
 
     st.markdown("---")
+
+    df_filtered = df_date_filtered[df_date_filtered["ENSO_Phase"].isin(selected_phases)]
+
+    phase_counts = df_filtered["ENSO_Phase"].value_counts()
+    total_months = len(df_filtered)
 
     st.markdown("### 🌡️ Sea Surface Temperature (SST): The First ENSO Signal")
 
@@ -684,7 +694,7 @@ elif page == "🔬 Model Performance":
        <li>Encoding <strong>seasonal cycles</strong> using sine and cosine transformations of calendar months</li>
     </ul>
     
-    <p class="description"><strong>Validation Approach —</strong> ENSOcast is trained on the earliest 80% of historical ENSO data and achieves <strong>83% accuracy</strong> when predicting the most recent 20% of observations.</p>
+    <p class="description"><strong>Validation Approach —</strong> ENSOcast is trained on the earliest 80% of historical ENSO data and achieves <strong>82% accuracy</strong> when predicting the most recent 20% of observations.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -718,6 +728,12 @@ elif page == "🔬 Model Performance":
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown("---")
+    st.markdown("### 📋 Detailed Classification Report")
+    st.markdown("""
+    To further evaluate baseline model performance, the classification report breaks down precision, recall, and F1-scores for each ENSO phase. This helps quantify how well the model identifies El Niño, Neutral, and La Niña conditions individually.
+    """)
+
     report = classification_report(df["True_Phase"], df["Predicted_Phase"], output_dict=True)
 
     phases = ["El Niño", "Neutral", "La Niña"]
@@ -749,7 +765,7 @@ elif page == "🔬 Model Performance":
                     </div>
                     <div>
                         <strong>Sample Size:</strong> {support}<br>
-                        <small>In the dataset, {support} months were labeled as {phase}.</small>
+                        <small>In the testing dataset, {support} months were labeled as {phase}.</small>
                     </div>
                 </div>
             </div>
@@ -816,61 +832,38 @@ elif page == "🔬 Model Performance":
         st.markdown("""
         <div class="insight-card" style="text-align: center;">
             <h4>⚖️ <strong>Which features matter most?</strong></h4>
-            <p>The baseline model is driven most by lagged SST anomalies, especially those from 2, 1, and 3 months ago. Seasonal signals and SOI data offer valuable supporting context.</p>
+            <p>The baseline model is driven most by lagged SST anomalies, especially those from 2, 3, and 1 month ago. Seasonal signals and SOI data offer valuable supporting context.</p>
         </div>
         """, unsafe_allow_html=True)
 
-elif page == "🛠️ Train Model":
+elif page == "🛠️ Train Custom Model":
     st.markdown("""
     <div class="story-card">
-        <h2>🛠️ Become a Climate AI Trainer</h2>
-        <p>Ready to train your own ENSO prediction model? Choose your data, pick your algorithm, 
-        and see how different approaches perform. This is where science meets experimentation!</p>
+        <h2>🛠️ Train a Custom ENSO Predictor</h2>
+        <p>Leverage the feature engineering of ENSOcast to experiment with ENSO phases and historical time periods as you train a custom <strong>Random Forest</strong> model and evaluate its predictions.</p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Interactive model building
-    st.markdown("### 🎛️ Design Your Experiment")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("#### 📅 Choose Your Training Period")
-        years = st.slider("Select years for training", 1982, 2024, (2000, 2020),
-                         help="More years = more data to learn from")
-
-        st.markdown("#### 🎭 Focus on Specific Phases")
-        selected_phases = st.multiselect(
-            "Which ENSO phases to include?",
-            ["La Niña", "Neutral", "El Niño"],
-            default=["La Niña", "Neutral", "El Niño"],
-            help="You can focus on specific phases to see how models handle them"
-        )
+        years = st.slider("Select Year Range", 1982, 2024, (2000, 2020),
+                         help="Drag to select the time period for training")
 
     with col2:
-        st.markdown("#### 🤖 Choose Your AI Algorithm")
-        classifier_options = {
-            "Random Forest": "🌳 Uses many decision trees - good for complex patterns",
-            "Support Vector Machine": "📐 Finds optimal boundaries - good for clear separations",
-            "Logistic Regression": "📊 Simple linear approach - fast and interpretable"
-        }
-
-        selected_classifier = st.selectbox(
-            "Pick your AI algorithm:",
-            list(classifier_options.keys()),
-            help="Each algorithm has different strengths"
+        selected_phases = st.multiselect(
+            "Select ENSO Phases",
+            ["La Niña", "Neutral", "El Niño"],
+            default=["La Niña", "Neutral", "El Niño"],
+            help="Select which ENSO phases to include in training"
         )
 
-        st.markdown(f"""
-        <div class="insight-card">
-            <p class="description">{classifier_options[selected_classifier]}</p>
-        </div>
-        """, unsafe_allow_html=True)
+    label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
 
-    # Train button
-    if st.button("🚀 Train Your Model", type="primary", use_container_width=True):
+    df["True_Phase"] = df["ENSO_Label"].map(label_map)
 
-        # Filter data based on selections
+    if st.button("🔬️ Train Your Model", type="primary", use_container_width=True):
+
         filtered_df = df[
             (df["Date"].dt.year >= years[0]) &
             (df["Date"].dt.year <= years[1]) &
@@ -881,151 +874,218 @@ elif page == "🛠️ Train Model":
             st.warning("⚠️ Not enough data for reliable training. Try expanding your date range or including more phases.")
             st.stop()
 
-        with st.spinner("🧠 Training your AI model... Teaching it to recognize ENSO patterns..."):
-            # Use proper train/test split to prevent data leakage
+        with st.spinner("🧠 Training in progress..."):
             filtered_df = filtered_df.sort_values("Date").reset_index(drop=True)
-            split_idx = int(0.8 * len(filtered_df))
+
+            min_test_size = max(10, int(0.2 * len(filtered_df)))
+            split_idx = len(filtered_df) - min_test_size
+            split_idx = max(split_idx, int(0.5 * len(filtered_df)))
 
             X_custom = filtered_df[feature_cols]
             y_custom = filtered_df["ENSO_Label"]
 
-            # Chronological split to prevent data leakage
             X_train_custom = X_custom.iloc[:split_idx]
             y_train_custom = y_custom.iloc[:split_idx]
             X_test_custom = X_custom.iloc[split_idx:]
             y_test_custom = y_custom.iloc[split_idx:]
 
-            # Train selected model
-            models = {
-                "Random Forest": RandomForestClassifier(random_state=42, n_estimators=100),
-                "Support Vector Machine": SVC(random_state=42, probability=True),
-                "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000)
-            }
-
-            custom_model = models[selected_classifier]
+            custom_model = RandomForestClassifier(random_state=42, n_estimators=100)
             custom_model.fit(X_train_custom, y_train_custom)
             y_pred_custom = custom_model.predict(X_test_custom)
 
-            # Calculate performance
             custom_accuracy = accuracy_score(y_test_custom, y_pred_custom)
 
-            # Map predictions back to phase names
             label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
             y_test_phases = [label_map[i] for i in y_test_custom]
             y_pred_phases = [label_map[i] for i in y_pred_custom]
 
-            from sklearn.metrics import confusion_matrix, classification_report
-            import matplotlib.pyplot as plt
-            import seaborn as sns
-
-            # Show class balance
-            st.subheader("📊 Class Balance (Test Set)")
-            class_counts = y_test_custom.value_counts(normalize=True).sort_index()
-            class_labels = ["La Niña", "Neutral", "El Niño"]
-            for idx, label in enumerate(class_labels):
-                pct = class_counts.get(idx, 0)
-                st.markdown(f"- **{label}**: {pct:.1%}")
-
-            # Confusion matrix
-            st.subheader("📉 Confusion Matrix")
-            cm = confusion_matrix(y_test_custom, y_pred_custom)
-            fig, ax = plt.subplots()
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=class_labels, yticklabels=class_labels, ax=ax)
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("Actual")
-            st.pyplot(fig)
-
-            # Classification report
-            st.subheader("📋 Classification Report")
-            report = classification_report(y_test_custom, y_pred_custom, target_names=class_labels, output_dict=True)
-            for label in class_labels:
-                metrics = report[label]
-                st.markdown(f"**{label}**")
-                st.markdown(f"- Precision: {metrics['precision']:.2f}")
-                st.markdown(f"- Recall: {metrics['recall']:.2f}")
-                st.markdown(f"- F1-score: {metrics['f1-score']:.2f}")
-
-
-            # Results presentation
-            st.balloons()
-
             st.markdown("""
             <div class="story-card">
-                <h2>🎉 Your Model is Ready!</h2>
-                <p>Your custom ENSO prediction model has completed training. Here's how it performed on unseen data.</p>
+                <h2>🎉 Training Complete!</h2>
+                <p>Your custom ENSO model has completed training. Check out its performance on unseen data.</p>
             </div>
             """, unsafe_allow_html=True)
 
-            # Match your exact metric container styling
             col1, col2, col3 = st.columns(3)
             color = "#94a3b8"
 
-            with col1:
+            with col3:
                 st.markdown(f"""
                 <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
-                    <h3>🎯 Accuracy</h3>
+                    <h3>🎯 Overall Accuracy</h3>
                     <h2>{custom_accuracy:.0%}</h2>
                     <p>Correct predictions</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-            with col2:
+            with col1:
                 training_size = len(X_train_custom)
                 st.markdown(f"""
                 <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
                     <h3>📚 Training Data</h3>
                     <h2>{training_size:,}</h2>
-                    <p>Months analyzed</p>
+                    <p>Months trained on</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-            with col3:
+            with col2:
                 test_size = len(X_test_custom)
                 st.markdown(f"""
                 <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40); padding: 1rem; border-radius: 10px;">
-                    <h3>🧪 Test Data</h3>
+                    <h3>🧪 Testing Data</h3>
                     <h2>{test_size:,}</h2>
-                    <p>Months tested</p>
+                    <p>Months tested on</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-            # Performance comparison using your insight-card style
             baseline_accuracy = accuracy
 
-            if custom_accuracy > baseline_accuracy:
-                comparison = f"Your model ({custom_accuracy:.0%}) outperformed our baseline ({baseline_accuracy:.0%}) — outstanding work!"
-                comparison_emoji = "🎉"
-            elif custom_accuracy > baseline_accuracy - 0.05:
-                comparison = f"Your model ({custom_accuracy:.0%}) performed similarly to our baseline ({baseline_accuracy:.0%}) — solid results!"
-                comparison_emoji = "👍"
+            if abs(custom_accuracy - baseline_accuracy) <= 0.015:
+                comparison = f"Your custom model reached <b>{custom_accuracy:.0%} accuracy</b>, closely matching the ENSOcast baseline performance of {baseline_accuracy:.0%}. This demonstrates consistent predictive capability across different training configurations."
+                comparison_emoji = "🔬️ "
+            elif custom_accuracy > baseline_accuracy:
+                comparison = f"Your custom model achieved <b>{custom_accuracy:.0%} accuracy</b>, surpassing the ENSOcast baseline model at {baseline_accuracy:.0%}. This suggests your selected time period and ENSO phases provided particularly strong training signals for the Random Forest algorithm."
+                comparison_emoji = "🔬️ "
             else:
-                comparison = f"Your model ({custom_accuracy:.0%}) has room for improvement vs baseline ({baseline_accuracy:.0%}) — great learning opportunity!"
-                comparison_emoji = "🤔"
+                comparison = f"Your custom model achieved <b>{custom_accuracy:.0%} accuracy</b> compared to the ENSOcast baseline's {baseline_accuracy:.0%}. This difference often reflects the challenging nature of your selected time period or phase combinations, offering valuable insights into ENSO predictability patterns."
+                comparison_emoji = "🔬️ "
 
             st.markdown(f"""
             <div class="insight-card" style="text-align: center;">
-                <h4>{comparison_emoji} <strong>Performance Comparison</strong></h4>
+                <h4>{comparison_emoji} <strong>Model Performance Analysis</strong></h4>
                 <p>{comparison}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+            ***NOTE:** 
+            The baseline ENSOcast model (82% accuracy) is trained on the complete 40+ year dataset (1982-2024) and includes climate variability, which can lower overall accuracy compared to models trained on more focused time periods.*
+            """)
+
+            st.markdown("---")
+
+            st.markdown("### 🧮 Confusion Matrix")
+            st.markdown("""
+            The confusion matrix reveals how well your custom model distinguishes each ENSO phase. Diagonal cells represent correct predictions for El Niño, Neutral, and La Niña months, while off-diagonal entries highlight misclassifications.
+            """)
+
+            cm = confusion_matrix(y_test_custom, y_pred_custom, labels=[2, 1, 0])
+
+            fig_cm = px.imshow(cm,
+                               labels=dict(x="Predicted Phase", y="Actual Phase", color="Count"),
+                               x=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                               y=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                               color_continuous_scale="Reds")
+
+            fig_cm.update_layout(
+                height=400,
+                margin=dict(t=30, b=30)
+            )
+
+            for i in range(len(cm)):
+                for j in range(len(cm[i])):
+                    fig_cm.add_annotation(x=j, y=i, text=str(cm[i][j]),
+                                        showarrow=False, font_size=16, font_color="white" if cm[i][j] > cm.max()/2 else "black")
+
+            st.plotly_chart(fig_cm, use_container_width=True)
+
+            total_per_class = cm.sum(axis=1)
+            correct_per_class = cm.diagonal()
+            class_names = ["El Niño", "Neutral", "La Niña"]
+            phase_emojis = ["🔴", "⚪", "🔵"]
+
+            total_predictions = cm.sum()
+            total_correct = cm.diagonal().sum()
+            off_diagonal_sum = cm.sum() - cm.diagonal().sum()
+
+            if total_correct / total_predictions >= 0.85:
+                confusion_insight = "Your model demonstrates strong classification performance across all ENSO phases, with most predictions falling along the diagonal."
+            elif off_diagonal_sum > total_correct:
+                confusion_insight = "The confusion matrix reveals significant misclassifications between phases, indicating the complexity of distinguishing ENSO states in your selected time period."
+            elif cm.max() > total_predictions * 0.5:
+                confusion_insight = "The model shows concentrated performance in certain phase predictions, with some ENSO states being more predictable than others."
+            else:
+                confusion_insight = "The confusion matrix displays a balanced mix of correct and incorrect predictions, reflecting the inherent challenges in ENSO phase classification."
+
+            st.markdown(f"""
+            <div class="insight-card" style="text-align: center;">
+                <h4>🧮 <strong>Accurate or confused?</strong></h4>
+                <p>{confusion_insight}</p>
             </div>
             """, unsafe_allow_html=True)
 
             st.markdown("---")
+            st.markdown("### 📋 Detailed Classification Report")
+            st.markdown("""
+            To help better understand how your model functions, this classification report breaks down precision, recall, and F1-scores for each ENSO phase. It shows how well your model identifies El Niño, Neutral, and La Niña conditions individually.
+            """)
 
-            # Detailed results using your exact phase styling
-            st.markdown("### 📋 Detailed Performance Report")
+            present_test_phases = list(set(y_test_phases))
+            present_pred_phases = list(set(y_pred_phases))
+            all_present_phases = sorted(set(y_test_phases + y_pred_phases))
 
-            report = classification_report(y_test_phases, y_pred_phases, output_dict=True)
+            try:
+                if len(y_test_phases) == 0:
+                    st.error("No test data available for classification report")
+                    st.stop()
+
+                report = classification_report(
+                    y_test_phases,
+                    y_pred_phases,
+                    labels=all_present_phases,
+                    output_dict=True,
+                    zero_division=0
+                )
+
+                if len(all_present_phases) == 1:
+                    st.info(f"ℹ️ Only one phase ({all_present_phases[0]}) appears in the test data. Limited metrics available.")
+                elif len(all_present_phases) == 2:
+                    st.info(f"ℹ️ Only two phases appear in test data: {', '.join(all_present_phases)}")
+
+                missing_from_test = set(selected_phases) - set(all_present_phases)
+                if missing_from_test:
+                    st.warning(f"⚠️ Selected phase(s) not in test data: {', '.join(missing_from_test)}")
+
+            except Exception as e:
+                st.error(f"Could not generate classification report: {str(e)}")
+                st.stop()
 
             phase_colors = {"El Niño": "#f6416c", "Neutral": "#94a3b8", "La Niña": "#3b82f6"}
             phase_emojis = {"El Niño": "🔴", "Neutral": "⚪", "La Niña": "🔵"}
 
-            for phase in selected_phases:
-                if phase in report:
-                    precision = report[phase]['precision']
-                    recall = report[phase]['recall']
-                    f1 = report[phase]['f1-score']
-                    support = int(report[phase]['support'])
+            phases_to_show = [phase for phase in selected_phases if phase in all_present_phases]
 
+            phase_display_order = ["El Niño", "Neutral", "La Niña"]
+
+            phases_to_show = [phase for phase in phase_display_order if phase in selected_phases]
+
+            for phase in phases_to_show:
+                metrics = report.get(phase)
+
+                if metrics:
+                    precision = metrics['precision']
+                    recall = metrics['recall']
+                    f1 = metrics['f1-score']
+                    support = int(metrics['support'])
+
+                    precision_text = f"{precision:.0%}" if precision > 0 else "N/A"
+                    recall_text = f"{recall:.0%}" if recall > 0 else "N/A"
+                    f1_text = f"{f1:.0%}" if f1 > 0 else "N/A"
+
+                    if support == 0:
+                        precision_explanation = f"No {phase} samples in test data"
+                        recall_explanation = f"No {phase} samples in test data"
+                    elif precision == 0:
+                        precision_explanation = f"Model never correctly predicted {phase}"
+                        recall_explanation = f"Model found {recall:.0%} of actual {phase} months"
+                    elif recall == 0:
+                        precision_explanation = f"When model predicts {phase}, it's correct {precision:.0%} of the time"
+                        recall_explanation = f"Model missed all actual {phase} months"
+                    else:
+                        precision_explanation = f"When model predicts {phase}, it's correct {precision:.0%} of the time"
+                        recall_explanation = f"Model correctly identifies {recall:.0%} of actual {phase} months"
+
+                    month_label = "month" if support == 1 else "months"
+                    was_were = "was" if support == 1 else "were"
                     st.markdown(f"""
                     <div class="insight-card" style="background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}40);">
                         <h4>{phase_emojis[phase]} {phase} Performance</h4>
@@ -1044,15 +1104,23 @@ elif page == "🛠️ Train Model":
                             </div>
                             <div>
                                 <strong>Sample Size:</strong> {support}<br>
-                                <small>In the dataset, {support} months were labeled as {phase}.</small>
+                                <small>In the testing dataset, {support} {month_label} {was_were} labeled as {phase}.</small>
                             </div>
                         </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="insight-card" style="background: linear-gradient(135deg, #64748b20, #64748b40);">
+                        <h4>{phase_emojis[phase]} {phase} Performance</h4>
+                        <p style="text-align: center; color: #64748b; font-style: italic;">
+                            No {phase} samples found in the test data for this time period and selection.
+                        </p>
                     </div>
                     """, unsafe_allow_html=True)
 
             st.markdown("---")
 
-            # Feature importance (if available) - matching your style
             if hasattr(custom_model, 'feature_importances_'):
                 st.markdown("### ⚖️ Feature Importance")
 
@@ -1074,391 +1142,13 @@ elif page == "🛠️ Train Model":
 
                 st.plotly_chart(fig_importance, use_container_width=True)
 
-                # Insight about top feature using your style
                 top_feature = importance_df.iloc[-1]
                 st.markdown(f"""
                 <div class="insight-card" style="text-align: center;">
-                    <h4>⚖️ <strong>Your model's primary focus</strong></h4>
-                    <p>Your {selected_classifier} model found <strong>{top_feature['Feature']}</strong> to be the most important factor, accounting for {top_feature['Importance']:.0%} of its decision-making process.</p>
+                    <h4>⚖️ <strong>Which features matter most?</strong></h4>
+                    <p>Your Random Forest model found <strong>{top_feature['Feature']}</strong> to be the most important factor, accounting for {top_feature['Importance']:.0%} of its decision-making process.</p>
                 </div>
                 """, unsafe_allow_html=True)
-
-            st.markdown("---")
-
-            # Actionable insights using your insight-card style
-            st.markdown("### 💡 Insights and Next Steps")
-
-            insights = []
-
-            if custom_accuracy > 0.8:
-                insights.append("🌟 Excellent performance! Your model could be used for real predictions.")
-            elif custom_accuracy > 0.7:
-                insights.append("👍 Good performance! Consider fine-tuning parameters for even better results.")
-            else:
-                insights.append("🔧 Room for improvement. Try different time periods or algorithms.")
-
-            if len(selected_phases) < 3:
-                insights.append("🎭 You focused on specific phases — try including all phases to see the full picture.")
-
-            if (years[1] - years[0]) < 10:
-                insights.append("📅 Consider using more years of data for better model training.")
-
-            for insight in insights:
-                st.markdown(f"""
-                <div class="insight-card" style="text-align: center;">
-                    <p>{insight}</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown("---")
-
-            # Download results section
-            st.markdown("### 📥 Take Your Results With You")
-
-            st.markdown("""
-            Download your model's predictions and detailed performance metrics for further analysis or reporting.
-            """)
-
-            # Create results dataframe
-            test_dates = filtered_df.iloc[split_idx:]["Date"].values
-            results_df = pd.DataFrame({
-                'Date': test_dates,
-                'Actual_Phase': y_test_phases,
-                'Predicted_Phase': y_pred_phases,
-                'Correct': [a == p for a, p in zip(y_test_phases, y_pred_phases)]
-            })
-
-            # Add feature data
-            test_features = filtered_df.iloc[split_idx:][feature_cols].reset_index(drop=True)
-            results_df = pd.concat([results_df, test_features], axis=1)
-
-            csv_data = results_df.to_csv(index=False)
-
-            st.download_button(
-                "📥 Download Your Model's Predictions",
-                data=csv_data,
-                file_name=f"custom_enso_model_{selected_classifier.lower().replace(' ', '_')}_{years[0]}_{years[1]}.csv",
-                mime="text/csv",
-                help="Download detailed results including predictions and input features",
-                use_container_width=True
-            )
-
-elif page == "🔮 Predict the Future":
-    st.header("🔮 Advanced ENSO Predictions")
-
-    # Introduction section
-    st.markdown("""
-    ### How This Prediction Works
-    Our AI model analyzes sea surface temperatures, atmospheric pressure, and historical patterns to predict which ENSO phase is most likely for any given month.
-    """)
-
-    st.markdown("---")
-
-    # Main prediction interface
-    st.markdown("### 🎯 Predict ENSO Phase for Any Month")
-    st.markdown("Choose a month and year to see what ENSO phase is predicted, along with the model's confidence level.")
-
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col1:
-        target_year = st.number_input("Year", min_value=1982, max_value=2030, value=2024, help="Select any year from 1982 to 2030")
-    with col2:
-        target_month = st.selectbox("Month", [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ], index=0, help="Select the month you want to predict")
-    with col3:
-        st.markdown("&nbsp;")  # Spacer
-        predict_button = st.button("🔮 Make Prediction", type="primary")
-
-    if predict_button:
-        month_num = {
-            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-        }[target_month]
-
-        target_date = datetime.date(target_year, month_num, 1)
-
-        try:
-            # Create features for the target date
-            X_target = create_feature_for_date(target_date, df, feature_cols)
-
-            # Get prediction and probabilities
-            prediction = model.predict(X_target)[0]
-            probabilities = model.predict_proba(X_target)[0]
-
-            predicted_phase = label_map[prediction]
-            max_prob = max(probabilities)
-
-            # Create result display
-            if predicted_phase == "El Niño":
-                phase_emoji = "🔴"
-                phase_color = "red"
-                phase_description = "Warmer ocean temperatures expected. This often brings increased rainfall to the southern US and can disrupt normal weather patterns globally."
-            elif predicted_phase == "La Niña":
-                phase_emoji = "🔵"
-                phase_color = "blue"
-                phase_description = "Cooler ocean temperatures expected. This often brings drier conditions to the southern US and more active hurricane seasons."
-            else:
-                phase_emoji = "⚪"
-                phase_color = "gray"
-                phase_description = "Normal ocean temperatures expected. Weather patterns should be closer to typical seasonal averages."
-
-            st.markdown("### 📊 Prediction Results")
-
-            # Main prediction result
-            st.markdown(f"""
-            <div style="background-color: {phase_color}15; padding: 20px; border-radius: 10px; border-left: 5px solid {phase_color};">
-                <h2 style="color: {phase_color}; margin: 0;">{phase_emoji} {predicted_phase}</h2>
-                <p style="margin: 5px 0 0 0; font-size: 18px;"><strong>Predicted for {target_month} {target_year}</strong></p>
-                <p style="margin: 10px 0 0 0;">{phase_description}</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Confidence level
-            if max_prob > 0.7:
-                confidence = "High"
-                confidence_color = "green"
-                confidence_desc = "The model is very confident in this prediction."
-            elif max_prob > 0.5:
-                confidence = "Moderate"
-                confidence_color = "orange"
-                confidence_desc = "The model has reasonable confidence, but there's some uncertainty."
-            else:
-                confidence = "Low"
-                confidence_color = "red"
-                confidence_desc = "The model has low confidence - the prediction is uncertain."
-
-            st.markdown(f"""
-            **Model Confidence:** <span style="color: {confidence_color};">**{confidence}** ({max_prob:.1%})</span>  
-            *{confidence_desc}*
-            """, unsafe_allow_html=True)
-
-            # Detailed probabilities
-            st.markdown("### 📈 Detailed Probabilities")
-            st.markdown("Here's how confident the model is for each possible ENSO phase:")
-
-            prob_data = {
-                "🔵 La Niña": probabilities[0],
-                "⚪ Neutral": probabilities[1],
-                "🔴 El Niño": probabilities[2]
-            }
-
-            for phase, prob in prob_data.items():
-                st.progress(prob, text=f"{phase}: {prob:.1%}")
-
-            # What this means section
-            st.markdown("### 🤔 What Does This Mean?")
-            st.markdown(f"""
-            - **Most Likely Outcome**: {predicted_phase} conditions in {target_month} {target_year}
-            - **Confidence Level**: {confidence} - {confidence_desc.lower()}
-            - **Key Insight**: The model analyzed sea surface temperatures, atmospheric pressure patterns, and historical data to make this prediction
-            """)
-
-            if max_prob < 0.6:
-                st.warning("⚠️ **Note**: This prediction has moderate to low confidence. ENSO predictions become less reliable further into the future or during transition periods.")
-
-        except Exception as e:
-            st.error(f"❌ Error making prediction: {e}")
-            st.info("Please try a different date or check if the data is available for your selected time period.")
-
-    st.markdown("### 🎯 Cast Your Prediction")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        target_year = st.number_input("🗓️ Which year calls to you?",
-                                     min_value=1982, max_value=2030, value=2024,
-                                     help="Choose any year from 1982 to 2030")
-
-    with col2:
-        target_month = st.selectbox("🌙 Which month holds the mystery?", [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ], index=datetime.datetime.now().month-1)
-
-    predict_button = st.button("🔮 Reveal the Future", type="primary", use_container_width=True)
-
-    if predict_button:
-        month_num = {
-            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-        }[target_month]
-
-        target_date = datetime.date(target_year, month_num, 1)
-
-        with st.spinner("🌊 The ocean spirits are consulting... Reading the signs..."):
-            try:
-                X_target = create_feature_for_date(target_date, df, feature_cols)
-                prediction = model.predict(X_target)[0]
-                probabilities = model.predict_proba(X_target)[0]
-
-                predicted_phase = label_map[prediction]
-                max_prob = max(probabilities)
-
-                # Dramatic reveal
-                st.balloons()
-
-                if predicted_phase == "El Niño":
-                    st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #ff9a8b 0%, #f6416c 100%);">
-                        <h1>🔴 El Niño Awakens</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean will run warm with El Niño's fire. 
-                        Expect the unexpected - flooding rains in some lands, drought in others.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                elif predicted_phase == "La Niña":
-                    st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #a8edea 0%, #3b82f6 100%);">
-                        <h1>🔵 La Niña's Cool Embrace</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean will run cold under La Niña's influence. 
-                        Hurricanes may dance with greater fury, and weather patterns will intensify.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                else:
-                    st.markdown(f"""
-                    <div class="prediction-box" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d3 100%); color: #333;">
-                        <h1>⚪ The Neutral Path</h1>
-                        <h3>For {target_month} {target_year}</h3>
-                        <p style="font-size: 1.2em;">The ocean rests in balance. Weather patterns will follow 
-                        their seasonal rhythms without dramatic shifts.</p>
-                        <p><strong>Oracle's Confidence:</strong> {max_prob:.1%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                st.markdown("### 🎲 The Full Prophecy")
-
-                # Probability visualization
-                prob_data = pd.DataFrame({
-                    'Phase': ['🔵 La Niña', '⚪ Neutral', '🔴 El Niño'],
-                    'Probability': probabilities,
-                    'Colors': ['#3b82f6', '#94a3b8', '#f6416c']
-                })
-
-                fig = px.bar(prob_data, x='Phase', y='Probability',
-                           color='Colors', color_discrete_map='identity',
-                           title="The Oracle's Vision - Detailed Probabilities")
-                fig.update_layout(showlegend=False, template="plotly_white")
-
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Confidence interpretation
-                if max_prob > 0.8:
-                    confidence_story = "🎯 **Crystal Clear Vision** - The signs are unmistakable"
-                elif max_prob > 0.6:
-                    confidence_story = "👁️ **Strong Intuition** - The patterns point clearly in one direction"
-                elif max_prob > 0.4:
-                    confidence_story = "🤔 **Clouded Vision** - The future remains uncertain, multiple paths possible"
-                else:
-                    confidence_story = "🌫️ **Misty Prophecy** - The ocean spirits are conflicted"
-
-                st.markdown(f"""
-                <div class="insight-card">
-                    {confidence_story}
-                    <br><br>
-                    <em>"The further we peer into time's river, the murkier the waters become. 
-                    Use this wisdom as a guide, not gospel."</em>
-                </div>
-                """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"❌ The oracle's vision is clouded: {e}")
-
-    st.markdown("---")
-
-    # Educational section about model performance
-    st.markdown("### 📚 How Accurate Are These Predictions?")
-
-    # Calculate and display model accuracy in an intuitive way
-    accuracy = accuracy_score(df["True_Phase"], df["Predicted_Phase"])
-    total_predictions = len(df)
-    correct_predictions = int(accuracy * total_predictions)
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Overall Accuracy", f"{accuracy:.1%}", help="Percentage of predictions that were correct")
-    with col2:
-        st.metric("Total Predictions", f"{total_predictions:,}", help="Number of months analyzed")
-    with col3:
-        st.metric("Correct Predictions", f"{correct_predictions:,}", help="Number of months predicted correctly")
-
-    st.markdown(f"""
-    **What this means**: Out of {total_predictions:,} months of historical data, our model correctly predicted the ENSO phase {correct_predictions:,} times. 
-    That's an accuracy rate of {accuracy:.1%}, which is quite good for climate prediction!
-    
-    **Important Notes**:
-    - Climate prediction is inherently uncertain - even the best models can't be 100% accurate
-    - Predictions are more reliable for the near future (3-6 months) than long-term forecasts
-    - The model works best during stable climate periods and may be less accurate during rapid transitions
-    """)
-
-    # Simple visualization of recent predictions vs reality
-    st.markdown("### 📊 Recent Predictions vs Reality")
-    st.markdown("See how well the model has been performing recently:")
-
-    # Show last 2 years of data
-    recent_data = df[df["Date"] >= (df["Date"].max() - pd.DateOffset(years=2))].copy()
-
-    # Create a simple comparison chart
-    fig_recent = go.Figure()
-
-    # Add actual phases
-    fig_recent.add_trace(go.Scatter(
-        x=recent_data["Date"],
-        y=[1 if phase == "El Niño" else 0 if phase == "Neutral" else -1 for phase in recent_data["True_Phase"]],
-        mode='lines+markers',
-        name='Actual Phase',
-        line=dict(color='blue', width=3),
-        marker=dict(size=8)
-    ))
-
-    # Add predicted phases
-    fig_recent.add_trace(go.Scatter(
-        x=recent_data["Date"],
-        y=[1 if phase == "El Niño" else 0 if phase == "Neutral" else -1 for phase in recent_data["Predicted_Phase"]],
-        mode='lines+markers',
-        name='Predicted Phase',
-        line=dict(color='red', width=2, dash='dot'),
-        marker=dict(size=6, symbol='x')
-    ))
-
-    fig_recent.update_layout(
-        title="Model Predictions vs Actual ENSO Phases (Last 2 Years)",
-        xaxis_title="Date",
-        yaxis_title="ENSO Phase",
-        yaxis=dict(
-            tickmode='array',
-            tickvals=[-1, 0, 1],
-            ticktext=['La Niña 🔵', 'Neutral ⚪', 'El Niño 🔴']
-        ),
-        template="plotly_white",
-        height=400,
-        hovermode='x unified'
-    )
-
-    st.plotly_chart(fig_recent, use_container_width=True)
-
-    st.markdown("""
-    **How to read this chart**:
-    - **Blue line**: What actually happened
-    - **Red dotted line**: What the model predicted
-    - When the lines overlap, the model was correct
-    - When they diverge, the model made an error
-    """)
-
-    # Final tips section
-    st.markdown("### 💡 Tips for Using These Predictions")
-    st.markdown("""
-    1. **Short-term predictions** (1-3 months ahead) are generally more reliable
-    2. **High confidence predictions** (>70%) are more likely to be accurate
-    3. **Consider multiple factors** - ENSO is just one part of the climate system
-    4. **Use for planning** - These predictions can help with agricultural, business, or travel planning
-    5. **Stay updated** - Climate patterns can change rapidly, so check back regularly
-    """)
 
 st.markdown("---")
 st.markdown("""
