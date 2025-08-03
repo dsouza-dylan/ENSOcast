@@ -165,13 +165,25 @@ joblib>=1.3.0
 ## 📸 Screenshots
 
 ### Dashboard Overview
-![Dashboard](assets/screenshots/dashboard.png)
+![Dashboard](assets/screenshots/pic1.png)
 
 ### Ocean Temperature Analysis
-![Ocean Temps](assets/screenshots/pic1.png)
+![Ocean Temps](assets/screenshots/pic2.png)
 
 ### Model Performance
-![Model Performance](assets/screenshots/pic2.png)
+![Model Performance](assets/screenshots/pic3.png)
+
+### Model Performance
+![Model Performance](assets/screenshots/pic4.png)
+
+### Model Performance
+![Model Performance](assets/screenshots/pic5.png)
+
+### Model Performance
+![Model Performance](assets/screenshots/pic6.png)
+
+### Model Performance
+![Model Performance](assets/screenshots/pic7.png)
 
 ## 📝 License
 
