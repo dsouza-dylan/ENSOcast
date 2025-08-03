@@ -170,19 +170,19 @@ joblib>=1.3.0
 ### Ocean Temperature Analysis
 ![Ocean Temps](assets/screenshots/pic2.png)
 
-### Model Performance
+### Data Selection
 ![Model Performance](assets/screenshots/pic3.png)
 
-### Model Performance
+### Trends in Sea Surface Temperature (SST)
 ![Model Performance](assets/screenshots/pic4.png)
 
-### Model Performance
+### Detailed Classification Report
 ![Model Performance](assets/screenshots/pic5.png)
 
-### Model Performance
+### Confusion Matrix
 ![Model Performance](assets/screenshots/pic6.png)
 
-### Model Performance
+### Feature Importance
 ![Model Performance](assets/screenshots/pic7.png)
 
 ## 📝 License
