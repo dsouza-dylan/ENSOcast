@@ -82,10 +82,10 @@ Navigate to `http://localhost:8501`
 
 ```
 ENSOcast/
-├── app.py
-├── LICENSE        
+├── app.py  
 ├── merged_enso.csv    
-├── requirements.txt       
+├── requirements.txt
+├── LICENSE           
 ├── README.md             
 └── assets/               
     └── screenshots/       
