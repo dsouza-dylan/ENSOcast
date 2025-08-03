@@ -192,9 +192,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**🌊 ENSOcast - Decoding El Niño–Southern Oscillation**
-
-*Making climate science accessible through interactive visualization and machine learning*
+**🌊 ENSOcast: Decoding El Niño–Southern Oscillation**
 
 [⭐ Star this repository](https://github.com/dsouza-dylan/ensocast) | [🐛 Report Bug](https://github.com/dsouza-dylan/ensocast/issues) | [💡 Request Feature](https://github.com/dsouza-dylan/ensocast/issues)
 
