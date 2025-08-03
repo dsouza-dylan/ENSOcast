@@ -7,6 +7,8 @@ A comprehensive Streamlit web application that leverages machine learning to ana
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
+🌊 **[Try ENSOcast Live](https://ensocast.streamlit.app/)**
+
 ## 🌍 What is ENSO?
 
 The El Niño-Southern Oscillation (ENSO) is one of the most influential climate patterns on Earth, affecting weather conditions globally. ENSOcast helps users understand this complex phenomenon through:
