@@ -176,7 +176,7 @@ joblib>=1.3.0
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Data Acknowledgments
+## 🙏 Acknowledgments
 
 - **NOAA** for providing comprehensive climate datasets
 
