@@ -168,10 +168,10 @@ joblib>=1.3.0
 ![Dashboard](assets/screenshots/dashboard.png)
 
 ### Ocean Temperature Analysis
-![Ocean Temps](assets/screenshots/ocean_temps.png)
+![Ocean Temps](assets/screenshots/pic1.png)
 
 ### Model Performance
-![Model Performance](assets/screenshots/model_performance.png)
+![Model Performance](assets/screenshots/pic2.png)
 
 ## 📝 License
 
