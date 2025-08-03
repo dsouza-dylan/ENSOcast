@@ -171,19 +171,19 @@ joblib>=1.3.0
 ![Ocean Temps](assets/screenshots/pic2.png)
 
 ### Data Selection
-![Model Performance](assets/screenshots/pic3.png)
+![Data Selection](assets/screenshots/pic3.png)
 
 ### Trends in Sea Surface Temperature (SST)
-![Model Performance](assets/screenshots/pic4.png)
+![SST Trends](assets/screenshots/pic4.png)
 
 ### Detailed Classification Report
-![Model Performance](assets/screenshots/pic5.png)
+![Classification Report](assets/screenshots/pic5.png)
 
 ### Confusion Matrix
-![Model Performance](assets/screenshots/pic6.png)
+![Confusion Matrix](assets/screenshots/pic6.png)
 
 ### Feature Importance
-![Model Performance](assets/screenshots/pic7.png)
+![Feature Importance](assets/screenshots/pic7.png)
 
 ## 📝 License
 
