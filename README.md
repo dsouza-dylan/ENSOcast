@@ -1,4 +1,4 @@
-# 🌊 ENSOcast: *Decoding El Niño–Southern Oscillation with Machine Learning*
+# 🌊 ENSOcast: Decoding El Niño–Southern Oscillation with Machine Learning
 
 A comprehensive Streamlit web application that leverages machine learning to analyze, visualize, and predict ENSO (El Niño-Southern Oscillation) patterns using historical climate data.
 
