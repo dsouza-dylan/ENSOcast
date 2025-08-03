@@ -5,6 +5,4 @@ joblib
 numpy
 scikit-learn
 xarray
-netCDF4
 matplotlib
-shap
