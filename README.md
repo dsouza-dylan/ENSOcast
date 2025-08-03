@@ -55,7 +55,7 @@ pip (Python package manager)
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/ensocast.git
+git clone https://github.com/dsouza-dylan/ensocast.git
 cd ensocast
 ```
 
@@ -67,12 +67,12 @@ pip install -r requirements.txt
 3. **Prepare the data:**
 ```bash
 # Ensure merged_enso.csv is in the project root
-# Download from: [Your data source URL]
+# Download from: https://github.com/dsouza-dylan/ENSOcast/blob/main/merged_enso.csv
 ```
 
 4. **Run the application:**
 ```bash
-streamlit run ensocastapp.py
+streamlit run app.py
 ```
 
 5. **Open your browser:**
@@ -82,12 +82,12 @@ Navigate to `http://localhost:8501`
 
 ```
 ensocast/
-├── ensocastapp.py          # Main Streamlit application
-├── merged_enso.csv         # Historical ENSO dataset
-├── requirements.txt        # Python dependencies
-├── README.md              # Project documentation
-└── assets/                # Images and static files
-    └── screenshots/       # App screenshots
+├── app.py          
+├── merged_enso.csv    
+├── requirements.txt       
+├── README.md             
+└── assets/               
+    └── screenshots/       
 ```
 
 ## 📊 Data Sources
@@ -95,7 +95,7 @@ ensocast/
 ENSOcast integrates multiple authoritative climate datasets:
 
 - **Sea Surface Temperature**: NOAA OISST v2.1 High Resolution Dataset
-- **Southern Oscillation Index**: Australian Bureau of Meteorology
+- **Southern Oscillation Index**: NOAA NCEI
 - **Oceanic Niño Index**: NOAA Climate Prediction Center
 - **ENSO Classifications**: Based on ONI thresholds (±0.5°C)
 
@@ -105,7 +105,7 @@ ENSOcast integrates multiple authoritative climate datasets:
 |---------|-------------|---------|
 | `SST` | Sea Surface Temperature (°C) | NOAA OISST |
 | `SST_Anomaly` | Temperature deviation from climatology | Derived |
-| `SOI` | Southern Oscillation Index | Australian BOM |
+| `SOI` | Southern Oscillation Index | NOAA NCEI |
 | `ONI` | Oceanic Niño Index | NOAA CPC |
 | `ENSO_Phase` | El Niño/Neutral/La Niña classification | ONI-based |
 
@@ -131,7 +131,7 @@ month_cos = cos(2π × month / 12)
 - **Features**: 10 engineered climate indicators  
 - **Target**: 3-class ENSO phase classification
 - **Validation**: Time-series split (80% train, 20% test)
-- **Performance**: 82% accuracy on held-out data
+- **Performance**: 82% accuracy on testing data
 
 ### Model Interpretability
 
@@ -168,14 +168,14 @@ month_cos = cos(2π × month / 12)
 ### Key Dependencies
 
 ```python
-streamlit>=1.28.0        # Web application framework
-pandas>=1.5.0           # Data manipulation
-numpy>=1.24.0           # Numerical computing
-scikit-learn>=1.3.0     # Machine learning
-plotly>=5.15.0          # Interactive visualizations
-xarray>=2023.1.0        # Multi-dimensional arrays
-matplotlib>=3.7.0       # Statistical plotting
-joblib>=1.3.0           # Model serialization
+streamlit>=1.28.0        
+pandas>=1.5.0       
+numpy>=1.24.0           
+scikit-learn>=1.3.0    
+plotly>=5.15.0          
+xarray>=2023.1.0        
+matplotlib>=3.7.0   
+joblib>=1.3.0       
 ```
 
 ## 📸 Screenshots
@@ -189,67 +189,21 @@ joblib>=1.3.0           # Model serialization
 ### Model Performance
 ![Model Performance](assets/screenshots/model_performance.png)
 
-## 🤝 Contributing
-
-We welcome contributions to ENSOcast! Here's how you can help:
-
-### Development Setup
-
-1. **Fork the repository**
-2. **Create a feature branch:**
-```bash
-git checkout -b feature/your-feature-name
-```
-
-3. **Make your changes**
-4. **Add tests** (if applicable)
-5. **Submit a pull request**
-
-### Contribution Guidelines
-
-- **Code Style**: Follow PEP 8 conventions
-- **Documentation**: Update README and docstrings
-- **Testing**: Ensure existing functionality isn't broken
-- **Performance**: Consider computational efficiency for large datasets
-
-### Areas for Contribution
-
-- 🌐 **Additional Data Sources**: Integrate more climate indices
-- 🤖 **Advanced Models**: Implement deep learning approaches
-- 📱 **Mobile Optimization**: Improve responsive design
-- 🌍 **Internationalization**: Multi-language support
-- 📊 **New Visualizations**: Creative data representations
-
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🙏 Data Acknowledgments
 
 - **NOAA** for providing comprehensive climate datasets
-- **Australian Bureau of Meteorology** for SOI data
-- **Streamlit Community** for the excellent web framework
-- **Climate Research Community** for ENSO insights and methodologies
 
 ## 📞 Contact
 
-**Dylan Dsouza** - *Creator & Maintainer*
+**Dylan Dsouza** - *Creator*
 
-- 📧 Email: [your.email@example.com]
-- 🐙 GitHub: [@yourusername](https://github.com/yourusername)
-- 💼 LinkedIn: [Your LinkedIn Profile]
-
-## 🔗 Related Projects
-
-- [Climate Data Analysis Tools](https://github.com/climate-tools)
-- [ENSO Prediction Models](https://github.com/enso-ml)
-- [Ocean Temperature Visualizations](https://github.com/ocean-viz)
-
-## 📚 References
-
-1. Trenberth, K. E. (1997). The definition of El Niño. *Bulletin of the American Meteorological Society*, 78(12), 2771-2777.
-2. McPhaden, M. J., et al. (2006). ENSO as an integrating concept in Earth science. *Science*, 314(5806), 1740-1745.
-3. Bjerknes, J. (1969). Atmospheric teleconnections from the equatorial Pacific. *Monthly Weather Review*, 97(3), 163-172.
+- 📧 Email: [dydsouza@ucsd.edu]
+- 🐙 GitHub: [@dsouza-dylan](https://github.com/dsouza-dylan)
+- 💼 LinkedIn: [J(https://www.linkedin.com/in/dsouza-dylan/)]
 
 ---
 
@@ -259,6 +213,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 *Making climate science accessible through interactive visualization and machine learning*
 
-[⭐ Star this repository](https://github.com/yourusername/ensocast) | [🐛 Report Bug](https://github.com/yourusername/ensocast/issues) | [💡 Request Feature](https://github.com/yourusername/ensocast/issues)
+[⭐ Star this repository](https://github.com/dsouza-dylan/ensocast) | [🐛 Report Bug](https://github.com/dsouza-dylan/ensocast/issues) | [💡 Request Feature](https://github.com/dsouza-dylan/ensocast/issues)
 
 </div>
