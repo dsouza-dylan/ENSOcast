@@ -139,23 +139,6 @@ month_cos = cos(2π × month / 12)
 - **Confusion Matrix**: Understand phase-specific performance
 - **Classification Reports**: Precision, recall, and F1-scores per phase
 
-## 🎯 Use Cases
-
-### 🎓 Education
-- **Climate Science Students**: Interactive learning tool for ENSO concepts
-- **Researchers**: Rapid prototyping of ENSO prediction models
-- **Educators**: Visual demonstrations of climate oscillations
-
-### 📈 Research & Analysis
-- **Pattern Discovery**: Identify long-term ENSO trends and cycles
-- **Model Comparison**: Benchmark different ML approaches
-- **Feature Analysis**: Understand climate variable relationships
-
-### 🌐 Practical Applications
-- **Agricultural Planning**: Seasonal forecasting for crop management
-- **Risk Assessment**: Extreme weather preparation
-- **Climate Monitoring**: Real-time ENSO phase tracking
-
 ## 🛠️ Technical Stack
 
 ### Core Technologies
@@ -203,7 +186,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 📧 Email: [dydsouza@ucsd.edu]
 - 🐙 GitHub: [@dsouza-dylan](https://github.com/dsouza-dylan)
-- 💼 LinkedIn: [J(https://www.linkedin.com/in/dsouza-dylan/)]
+- 💼 LinkedIn: [@dsouza-dylan](https://www.linkedin.com/in/dsouza-dylan/)
 
 ---
 
