@@ -88,7 +88,8 @@ ENSOcast/
 ├── LICENSE           
 ├── README.md             
 └── assets/               
-    └── screenshots/       
+    └── screenshots/
+        └── [app screenshots]
 ```
 
 ## 📊 Data Sources
