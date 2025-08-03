@@ -81,8 +81,9 @@ Navigate to `http://localhost:8501`
 ## 📁 Project Structure
 
 ```
-ensocast/
-├── app.py          
+ENSOcast/
+├── app.py
+├── LICENSE        
 ├── merged_enso.csv    
 ├── requirements.txt       
 ├── README.md             
