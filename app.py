@@ -143,8 +143,8 @@ def load_data():
 @st.cache_data
 def load_sst_dataset():
     try:
-        url = "http://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres/sst.mon.mean.nc"
-        ds = xr.open_dataset(url)
+        file_sst = "compressed_sst.nc"
+        ds = xr.open_dataset(file_sst)
         ds["time"] = pd.to_datetime(ds["time"].values)
         return ds
     except:
