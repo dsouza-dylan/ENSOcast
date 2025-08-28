@@ -14,6 +14,14 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 import datetime
+import tensorflow as tf
+import xgboost as xgb
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Conv1D, GlobalMaxPooling1D, LSTM, BatchNormalization
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -91,6 +99,26 @@ st.markdown("""
         border-radius: 10px;
         text-align: center;
         margin: 0.5rem;
+    }
+    
+    # Add this to your existing st.markdown CSS section
+    .model-card {
+        background: linear-gradient(135deg, #667eea20, #764ba240);
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        border-left: 4px solid #667eea;
+    }
+    
+    .enhancement-badge {
+        background: linear-gradient(135deg, #00b894, #00cec9);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: bold;
+        margin: 0.2rem;
+        display: inline-block;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -210,8 +238,9 @@ page = st.sidebar.radio(
     ["🌍 Understanding ENSO",
      "🌡️ Ocean Temperatures",
      "📊 Explore Past Patterns",
-        "🔬 Model Performance",
-        "🛠️ Train Custom Model"],
+     "🔬 Model Overview",
+     "🔧 Train Baseline Model",
+     "🛠️ Train Advanced Models"],
     index=0
 )
 st.sidebar.markdown("---")
@@ -269,19 +298,19 @@ if page == "🌍 Understanding ENSO":
         <h2>💥 The Global Impact of ENSO</h2>
         <p>ENSO may begin in the Pacific, but its ripple effects reach around the world:</p>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div style="background: #ff6b6b; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="background: #6c9faf; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
                 <h4>🌾 Agriculture</h4>
                 <p>Variations in rainfall patterns significantly affect crop production, food supply stability, and agricultural economies.</p>
             </div>
-            <div style="background: #4ecdc4; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="background: #d77a7a; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
                 <h4>🌤️ Weather</h4>
                 <p>ENSO alters the distribution of extreme weather events, resulting in increased storms in some regions and decreased rainfall in others.</p>
             </div>
-            <div style="background: #45b7d1; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="background: #9a7ca8; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
                 <h4>💰 Economy</h4>
                 <p>Fluctuations in crop yields and energy demand influence financial markets worldwide and sway international trade.</p>
             </div>
-            <div style="background: #f9ca24; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="background: #e0c275; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
                 <h4>🐠 Marine Life</h4>
                 <p>Ocean temperature changes drive shifts in fish populations, degrade coral reef ecosystems, and disrupt marine food webs.</p>
             </div>
@@ -299,7 +328,7 @@ elif page == "🌡️ Ocean Temperatures":
 
     col1, col2 = st.columns(2)
     with col1:
-        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010, help="Drag to select the year you want to explore")
+        selected_year = st.slider("Select Year", min_value=1982, max_value=2024, value=2010, help="Drag to select the year you want to explore", key="sst_year_slider")
     with col2:
         month_dict = {
             "January": 1, "February": 2, "March": 3, "April": 4,
@@ -398,7 +427,8 @@ elif page == "📊 Explore Past Patterns":
     with col1:
         years = st.slider(
             "Select Year Range", 1982, 2024, (2000, 2020),
-            help="Drag to select the time period you want to explore"
+            help="Drag to select the time period you want to explore",
+            key="explore_years_slider"
         )
 
     with col2:
@@ -406,7 +436,8 @@ elif page == "📊 Explore Past Patterns":
             "Select ENSO Phases",
             ["El Niño", "Neutral", "La Niña"],
             default=["El Niño", "Neutral", "La Niña"],
-            help="Select which ENSO phases to include in your analysis"
+            help="Select which ENSO phases to include in your analysis",
+            key="select_phases_slider"
         )
 
     df_date_filtered = df[
@@ -665,7 +696,7 @@ elif page == "📊 Explore Past Patterns":
     </div>
     """, unsafe_allow_html=True)
 
-elif page == "🔬 Model Performance":
+elif page == "🔬 Model Overview":
     st.markdown("""
     <div class="story-card">
        <h2>🔬 Understanding the Baseline Model</h2>
@@ -686,7 +717,7 @@ elif page == "🔬 Model Performance":
        <li class="description"><strong>Southern Oscillation Index (SOI)</strong>, measuring atmospheric pressure differences across the Pacific</li>
     </ul>
     
-    <p class="description"><strong>Advanced Feature Engineering —</strong> To capture temporal patterns and seasonal dependencies, ENSOcast applies several preprocessing techniques:</p>
+    <p class="description"><strong>Feature Engineering —</strong> To capture temporal patterns and seasonal dependencies, ENSOcast applies several preprocessing techniques:</p>
     
     <ul class="description" style="text-align: left;">
        <li>Calculating <strong>SST anomalies</strong> by eliminating the long-term climatological baseline</li>
@@ -727,6 +758,41 @@ elif page == "🔬 Model Performance":
             <p>Months tested on</p>
         </div>
         """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    st.markdown("### 🧮 Confusion Matrix")
+
+    st.markdown("""
+    The confusion matrix reveals how accurately the baseline model identifies each ENSO phase. Diagonal cells show correct predictions for El Niño, Neutral, and La Niña months, while off-diagonal values highlight where the model confuses one phase for another.
+    """)
+
+    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "Neutral", "La Niña"])
+
+    fig_cm = px.imshow(cm,
+                       labels=dict(x="Predicted Phase", y="Actual Phase", color="Count"),
+                       x=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                       y=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                       color_continuous_scale="Reds")
+
+    fig_cm.update_layout(
+        height=400,
+        margin=dict(t=30, b=30)
+    )
+
+    for i in range(len(cm)):
+        for j in range(len(cm[i])):
+            fig_cm.add_annotation(x=j, y=i, text=str(cm[i][j]),
+                                showarrow=False, font_size=16, font_color="white" if cm[i][j] > cm.max()/2 else "black")
+
+    st.plotly_chart(fig_cm, use_container_width=True)
+
+    st.markdown("""
+    <div class="insight-card" style="text-align: center;">
+        <h4>🧮 <strong>Accurate or confused?</strong></h4>
+        <p>The baseline model predicts ENSO phases well overall. Neutral is classified most accurately, while La Niña shows some confusion with Neutral.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📋 Detailed Classification Report")
@@ -773,41 +839,6 @@ elif page == "🔬 Model Performance":
 
     st.markdown("---")
 
-    st.markdown("### 🧮 Confusion Matrix")
-
-    st.markdown("""
-    The confusion matrix reveals how accurately the baseline model identifies each ENSO phase. Diagonal cells show correct predictions for El Niño, Neutral, and La Niña months, while off-diagonal values highlight where the model confuses one phase for another.
-    """)
-
-    cm = confusion_matrix(df["True_Phase"], df["Predicted_Phase"], labels=["El Niño", "Neutral", "La Niña"])
-
-    fig_cm = px.imshow(cm,
-                       labels=dict(x="Predicted Phase", y="Actual Phase", color="Count"),
-                       x=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
-                       y=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
-                       color_continuous_scale="Reds")
-
-    fig_cm.update_layout(
-        height=400,
-        margin=dict(t=30, b=30)
-    )
-
-    for i in range(len(cm)):
-        for j in range(len(cm[i])):
-            fig_cm.add_annotation(x=j, y=i, text=str(cm[i][j]),
-                                showarrow=False, font_size=16, font_color="white" if cm[i][j] > cm.max()/2 else "black")
-
-    st.plotly_chart(fig_cm, use_container_width=True)
-
-    st.markdown("""
-    <div class="insight-card" style="text-align: center;">
-        <h4>🧮 <strong>Accurate or confused?</strong></h4>
-        <p>The baseline model predicts ENSO phases well overall. Neutral is classified most accurately, while La Niña shows some confusion with Neutral.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
     st.markdown("### ⚖️ Feature Importance")
 
     st.markdown("""
@@ -836,10 +867,10 @@ elif page == "🔬 Model Performance":
         </div>
         """, unsafe_allow_html=True)
 
-elif page == "🛠️ Train Custom Model":
+elif page == "🔧 Train Baseline Model":
     st.markdown("""
     <div class="story-card">
-        <h2>🛠️ Train a Custom ENSO Classifier</h2>
+        <h2>🔧 Customize Baseline Model Training</h2>
         <p>Leverage the feature engineering of ENSOcast to experiment with ENSO phases and historical time periods as you train a custom <strong>Random Forest</strong> model and evaluate its predictions.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -848,14 +879,16 @@ elif page == "🛠️ Train Custom Model":
 
     with col1:
         years = st.slider("Select Year Range", 1982, 2024, (2000, 2020),
-                         help="Drag to select the time period for training")
+                         help="Drag to select the time period for training",
+                          key="custom_model_years_slider")
 
     with col2:
         selected_phases = st.multiselect(
             "Select ENSO Phases",
             ["La Niña", "Neutral", "El Niño"],
             default=["La Niña", "Neutral", "El Niño"],
-            help="Select which ENSO phases to include in training"
+            help="Select which ENSO phases to include in training",
+            key="analysis_select_slider"
         )
 
     label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
@@ -1147,6 +1180,517 @@ elif page == "🛠️ Train Custom Model":
                 <div class="insight-card" style="text-align: center;">
                     <h4>⚖️ <strong>Which features matter most?</strong></h4>
                     <p>Your Random Forest model found <strong>{top_feature['Feature']}</strong> to be the most important factor, accounting for {top_feature['Importance']:.0%} of its decision-making process.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+elif page == "🛠️ Train Advanced Models":
+    st.markdown("""
+    <div class="story-card">
+       <h2>🛠️ Build and Compare Advanced Models</h2>
+       <p>Experiment with the advanced feature-engineering of ENSOcast to train and assess a range of models, including <strong>Enhanced Random Forest</strong>, <strong>XGBoost</strong>, <strong>1D CNNs</strong>, <strong>LSTMs</strong>, and <strong>Ensemble Learning</strong>, on their ability to predict ENSO phases across historical time periods.</p>
+    
+    <p class="description"><strong>Advanced Feature Engineering —</strong> To capture deeper temporal trends, seasonal patterns, and interaction terms, ENSOcast employs additional feature engineering steps:</p>
+    
+    <ul class="description" style="text-align: left;">
+       <li>Calculating <strong>rolling SST and SOI averages</strong> over 3 and 6 months to smooth short- and medium-term variability</li>
+       <li>Computing <strong>SST and SOI trends</strong> to capture month-to-month changes indicative of ENSO phase transitions</li>
+       <li>Creating an <strong>SST × SOI interaction</strong> feature to capture combined ocean–atmosphere effects</li>
+       <li>Adding <strong>seasonal signals</strong> for December–February and June–August to reflect key ENSO-related seasons</li>
+       <li>Including <strong>OHC anomalies</strong> to incorporate subsurface thermal energy signals predictive of El Niño or La Niña</li>
+    </ul>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div style="background: #6c9faf; color: white; padding: 1rem; border-radius: 8px;">
+                <h4>🌳 Random Forest</h4>
+                <p>Captures non-linear feature interactions in tabular SST/SOI data with interpretability through feature importance, ideal for explainable ENSO classification.</p>
+            </div>
+            <div style="background: #d77a7a; color: white; padding: 1rem; border-radius: 8px;">
+                <h4>🚀 XGBoost</h4>
+                <p>Boosts decision trees to optimize phase prediction accuracy from engineered climate indicators, handling feature noise and missing data with resilience.</p>
+            </div>
+            <div style="background: #9a7ca8; color: white; padding: 1rem; border-radius: 8px;">
+                <h4>🧠 1D CNN</h4>
+                <p>Learns local temporal patterns in rolling SST/SOI sequences using convolutional layers, ideal for detecting short-term ENSO signal transitions.</p>
+            </div>
+            <div style="background: #e0c275; color: white; padding: 1rem; border-radius: 8px;">
+                <h4>🕰️ LSTM</h4>
+                <p>Models long-range temporal trends in SST/SOI sequences, making it well-suited for forecasting ENSO phases driven by multi-month climatic trends.</p>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: center; margin-top: 1rem;">
+            <div style="background: #7aa89f; color: white; padding: 1rem; border-radius: 8px; max-width: 800px; width: 100%;">
+                <h4>🤝 Ensemble Learning</h4>
+                <p>Combines <strong>Random Forest</strong> and <strong>XGBoost</strong> predictions to leverage complementary strengths, improving overall ENSO phase prediction robustness and reducing model-specific biases.</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    try:
+        advanced_models_available = True
+    except ImportError as e:
+        st.error(f"🚨 Advanced models require additional libraries: {str(e)}")
+        st.info("💡 Please install: pip install xgboost tensorflow")
+        advanced_models_available = False
+
+    if not advanced_models_available:
+        st.stop()
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        years = st.slider("Select Year Range", 1982, 2024, (2000, 2020),
+                         help="Drag to select the time period for training")
+
+    with col2:
+        selected_phases = st.multiselect(
+            "Select ENSO Phases",
+            ["La Niña", "Neutral", "El Niño"],
+            default=["La Niña", "Neutral", "El Niño"],
+            help="Select which ENSO phases to include in training"
+        )
+
+    with col3:
+        model_type = st.selectbox(
+            "Select ML Algorithm",
+            ["Enhanced Random Forest", "XGBoost", "1D CNN", "LSTM", "Ensemble Learning"],
+            help="Choose the machine learning algorithm to train"
+        )
+
+    with st.expander("⚙️ Advanced Settings", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            test_size = st.slider("Testing Data Size (%)", 10, 40, 20,
+                                help="Percentage of data to use for testing")
+        with col2:
+            sequence_length = st.slider("Sequence Length (months)", 3, 18, 6,
+                                      help="Number of months to look back for CNN/LSTM")
+
+    if st.button("🔬 Train Advanced Model", type="primary", use_container_width=True):
+
+        label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
+        df["True_Phase"] = df["ENSO_Label"].map(label_map)
+
+        filtered_df = df[
+            (df["Date"].dt.year >= years[0]) &
+            (df["Date"].dt.year <= years[1]) &
+            (df["True_Phase"].isin(selected_phases))
+        ]
+
+        if len(filtered_df) < 50:
+            st.warning("⚠️ Insufficient data for advanced models. Try expanding your date range or including more phases.")
+            st.stop()
+
+        with st.spinner("🧠 Training advanced model..."):
+
+            filtered_df = filtered_df.sort_values("Date").reset_index(drop=True)
+
+            feature_cols = [
+                "SST_Anomaly", "SOI", "SOI_lag_1", "SOI_lag_2", "SOI_lag_3",
+                "SST_Anomaly_lag_1", "SST_Anomaly_lag_2", "SST_Anomaly_lag_3",
+                "month_sin", "month_cos"
+            ]
+
+            enhanced_features = [
+                "SST_Anomaly_rolling_3m", "SOI_rolling_3m", "SST_Anomaly_rolling_6m",
+                "SST_SOI_interaction", "SST_trend", "SOI_trend", "is_djf", "is_jja"
+            ]
+
+            for feat in enhanced_features:
+                if feat in filtered_df.columns and not filtered_df[feat].isna().all():
+                    feature_cols.append(feat)
+
+            if "OHC_Anomaly" in filtered_df.columns and not filtered_df["OHC_Anomaly"].isna().all():
+                feature_cols.append("OHC_Anomaly")
+
+            X_custom = filtered_df[feature_cols].fillna(method='ffill').fillna(method='bfill')
+            y_custom = filtered_df["ENSO_Label"]
+
+            split_idx = int((100 - test_size) / 100 * len(filtered_df))
+            split_idx = max(split_idx, int(0.6 * len(filtered_df)))
+
+            X_train_custom = X_custom.iloc[:split_idx]
+            y_train_custom = y_custom.iloc[:split_idx]
+            X_test_custom = X_custom.iloc[split_idx:]
+            y_test_custom = y_custom.iloc[split_idx:]
+
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train_custom)
+            X_test_scaled = scaler.transform(X_test_custom)
+
+            model_results = {}
+
+            def create_sequences(X, y, seq_len):
+                sequences, labels = [], []
+                for i in range(seq_len, len(X)):
+                    sequences.append(X[i-seq_len:i])
+                    labels.append(y.iloc[i] if hasattr(y, 'iloc') else y[i])
+                return np.array(sequences), np.array(labels)
+
+            if model_type == "Enhanced Random Forest":
+                model = RandomForestClassifier(n_estimators=300, max_depth=20, random_state=42)
+                model.fit(X_train_custom, y_train_custom)
+                y_pred = model.predict(X_test_custom)
+                model_results["Random Forest"] = accuracy_score(y_test_custom, y_pred)
+                final_predictions = y_pred
+
+            elif model_type == "XGBoost":
+                model = xgb.XGBClassifier(
+                    objective='multi:softprob',
+                    n_estimators=300,
+                    max_depth=6,
+                    learning_rate=0.1,
+                    random_state=42
+                )
+                model.fit(X_train_scaled, y_train_custom, verbose=False)
+                y_pred = model.predict(X_test_scaled)
+                model_results["XGBoost"] = accuracy_score(y_test_custom, y_pred)
+                final_predictions = y_pred
+
+            elif model_type == "1D CNN":
+                if len(X_train_scaled) < sequence_length + 10:
+                    st.warning(f"⚠️ Insufficient data for sequence length {sequence_length}. Using sequence length of {min(6, len(X_train_scaled)//4)}")
+                    sequence_length = min(6, len(X_train_scaled)//4)
+
+                X_train_seq, y_train_seq = create_sequences(X_train_scaled, y_train_custom, sequence_length)
+                X_test_seq, y_test_seq = create_sequences(X_test_scaled, y_test_custom, sequence_length)
+
+                model = Sequential([
+                    Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(sequence_length, len(feature_cols))),
+                    BatchNormalization(),
+                    Conv1D(filters=32, kernel_size=3, activation='relu'),
+                    Dropout(0.3),
+                    GlobalMaxPooling1D(),
+                    Dense(50, activation='relu'),
+                    Dropout(0.5),
+                    Dense(len(selected_phases), activation='softmax')
+                ])
+
+                model.compile(optimizer=Adam(learning_rate=0.001),
+                            loss='sparse_categorical_crossentropy',
+                            metrics=['accuracy'])
+
+                callbacks = [
+                    EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
+                    ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10)
+                ]
+
+                model.fit(X_train_seq, y_train_seq,
+                         validation_data=(X_test_seq, y_test_seq),
+                         epochs=100, batch_size=16, callbacks=callbacks, verbose=0)
+
+                y_pred = np.argmax(model.predict(X_test_seq), axis=1)
+                model_results["1D CNN"] = accuracy_score(y_test_seq, y_pred)
+                final_predictions = y_pred
+                y_test_custom = y_test_seq
+
+            elif model_type == "LSTM":
+                if len(X_train_scaled) < sequence_length + 10:
+                    st.warning(f"⚠️ Insufficient data for sequence length {sequence_length}. Using sequence length of {min(6, len(X_train_scaled)//4)}")
+                    sequence_length = min(6, len(X_train_scaled)//4)
+
+                X_train_seq, y_train_seq = create_sequences(X_train_scaled, y_train_custom, sequence_length)
+                X_test_seq, y_test_seq = create_sequences(X_test_scaled, y_test_custom, sequence_length)
+
+                model = Sequential([
+                    LSTM(50, return_sequences=True, input_shape=(sequence_length, len(feature_cols))),
+                    Dropout(0.3),
+                    LSTM(50, return_sequences=False),
+                    Dropout(0.3),
+                    Dense(25, activation='relu'),
+                    Dense(len(selected_phases), activation='softmax')
+                ])
+
+                model.compile(optimizer=Adam(learning_rate=0.001),
+                            loss='sparse_categorical_crossentropy',
+                            metrics=['accuracy'])
+
+                callbacks = [
+                    EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
+                    ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10)
+                ]
+
+                model.fit(X_train_seq, y_train_seq,
+                         validation_data=(X_test_seq, y_test_seq),
+                         epochs=100, batch_size=16, callbacks=callbacks, verbose=0)
+
+                y_pred = np.argmax(model.predict(X_test_seq), axis=1)
+                model_results["LSTM"] = accuracy_score(y_test_seq, y_pred)
+                final_predictions = y_pred
+                y_test_custom = y_test_seq
+
+            elif model_type == "Ensemble Learning":
+                ensemble_predictions = []
+
+                rf_model = RandomForestClassifier(n_estimators=200, random_state=42)
+                rf_model.fit(X_train_custom, y_train_custom)
+                rf_pred = rf_model.predict(X_test_custom)
+                model_results["Random Forest"] = accuracy_score(y_test_custom, rf_pred)
+                ensemble_predictions.append(rf_pred)
+
+                xgb_model = xgb.XGBClassifier(objective='multi:softprob', n_estimators=200, random_state=42)
+                xgb_model.fit(X_train_scaled, y_train_custom, verbose=False)
+                xgb_pred = xgb_model.predict(X_test_scaled)
+                model_results["XGBoost"] = accuracy_score(y_test_custom, xgb_pred)
+                ensemble_predictions.append(xgb_pred)
+
+                from scipy.stats import mode
+                ensemble_pred = mode(np.array(ensemble_predictions), axis=0)[0].flatten()
+                model_results["Ensemble"] = accuracy_score(y_test_custom, ensemble_pred)
+                final_predictions = ensemble_pred
+
+            custom_accuracy = accuracy_score(y_test_custom, final_predictions)
+
+            st.markdown("""
+            <div class="story-card">
+                <h2>🎉 Training Complete!</h2>
+                <p>Your custom ENSO model has completed training. Check out its performance on unseen data.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns(3)
+            color = "#94a3b8"
+
+            with col1:
+                training_size = len(X_train_custom)
+                st.markdown(f"""
+                <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                    <h3>📚 Training Data</h3>
+                    <h2>{training_size:,}</h2>
+                    <p>Months trained on</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                test_size = len(y_test_custom)
+                st.markdown(f"""
+                <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                    <h3>🧪 Testing Data</h3>
+                    <h2>{test_size:,}</h2>
+                    <p>Months tested on</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col3:
+                st.markdown(f"""
+                <div class="metric-container" style="background: linear-gradient(135deg, {color}20, {color}40);">
+                    <h3>🎯 Overall Accuracy</h3>
+                    <h2>{custom_accuracy:.0%}</h2>
+                    <p>Correct predictions</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            baseline_accuracy = accuracy
+
+            if abs(custom_accuracy - baseline_accuracy) <= 0.015:
+                comparison = f"Your custom model reached <b>{custom_accuracy:.0%} accuracy</b>, closely matching the ENSOcast baseline performance of {baseline_accuracy:.0%}. This demonstrates consistent predictive capability across different training configurations."
+                comparison_emoji = "🔬️ "
+            elif custom_accuracy > baseline_accuracy:
+                comparison = f"Your custom model achieved <b>{custom_accuracy:.0%} accuracy</b>, surpassing the ENSOcast baseline model at {baseline_accuracy:.0%}. This suggests your selected time period and ENSO phases provided particularly strong training signals for the Random Forest algorithm."
+                comparison_emoji = "🔬️ "
+            else:
+                comparison = f"Your custom model achieved <b>{custom_accuracy:.0%} accuracy</b> compared to the ENSOcast baseline's {baseline_accuracy:.0%}. This difference often reflects the challenging nature of your selected time period or phase combinations, offering valuable insights into ENSO predictability patterns."
+                comparison_emoji = "🔬️ "
+
+            st.markdown(f"""
+            <div class="insight-card" style="text-align: center;">
+                <h4>{comparison_emoji} <strong>Model Performance Analysis</strong></h4>
+                <p>{comparison}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+            ***NOTE:** 
+            The CNN and LSTM models predict ENSO phases using multi-month sequences. Accuracy is computed on the last month of each sequence, reflecting sequence-level predictions rather than all individual months, which slightly reduces the number of test points and shifts alignment.*
+            """)
+
+            st.markdown("---")
+            st.markdown("### 🧮 Confusion Matrix")
+
+            st.markdown("""
+            The confusion matrix reveals how well your custom model distinguishes each ENSO phase. Diagonal cells represent correct predictions for El Niño, Neutral, and La Niña months, while off-diagonal entries highlight misclassifications.
+            """)
+
+            label_map = {0: "La Niña", 1: "Neutral", 2: "El Niño"}
+            y_test_phases = [label_map[i] for i in y_test_custom]
+            y_pred_phases = [label_map[i] for i in final_predictions]
+
+            cm = confusion_matrix(y_test_custom, final_predictions, labels=[2, 1, 0])
+
+            fig_cm = px.imshow(cm,
+                               labels=dict(x="Predicted Phase", y="Actual Phase", color="Count"),
+                               x=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                               y=["🔴 El Niño", "⚪ Neutral", "🔵 La Niña"],
+                               color_continuous_scale="Reds")
+
+            fig_cm.update_layout(height=400, margin=dict(t=30, b=30))
+
+            for i in range(len(cm)):
+                for j in range(len(cm[i])):
+                    fig_cm.add_annotation(x=j, y=i, text=str(cm[i][j]),
+                                        showarrow=False, font_size=16,
+                                        font_color="white" if cm[i][j] > cm.max()/2 else "black")
+
+            st.plotly_chart(fig_cm, use_container_width=True)
+
+            total_per_class = cm.sum(axis=1)
+            correct_per_class = cm.diagonal()
+            class_names = ["El Niño", "Neutral", "La Niña"]
+            phase_emojis = ["🔴", "⚪", "🔵"]
+
+            total_predictions = cm.sum()
+            total_correct = cm.diagonal().sum()
+            off_diagonal_sum = cm.sum() - cm.diagonal().sum()
+
+            if total_correct / total_predictions >= 0.85:
+                confusion_insight = "Your model demonstrates strong classification performance across all ENSO phases, with most predictions falling along the diagonal."
+            elif off_diagonal_sum > total_correct:
+                confusion_insight = "The confusion matrix reveals significant misclassifications between phases, indicating the complexity of distinguishing ENSO states in your selected time period."
+            elif cm.max() > total_predictions * 0.5:
+                confusion_insight = "The model shows concentrated performance in certain phase predictions, with some ENSO states being more predictable than others."
+            else:
+                confusion_insight = "The confusion matrix displays a balanced mix of correct and incorrect predictions, reflecting the inherent challenges in ENSO phase classification."
+
+            st.markdown(f"""
+            <div class="insight-card" style="text-align: center;">
+                <h4>🧮 <strong>Accurate or confused?</strong></h4>
+                <p>{confusion_insight}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.markdown("### 📋 Detailed Classification Report")
+            st.markdown("""
+            To help better understand how your model functions, this classification report breaks down precision, recall, and F1-scores for each ENSO phase. It shows how well your model identifies El Niño, Neutral, and La Niña conditions individually.
+            """)
+
+            present_test_phases = list(set(y_test_phases))
+            present_pred_phases = list(set(y_pred_phases))
+            all_present_phases = sorted(set(y_test_phases + y_pred_phases))
+
+            try:
+                if len(y_test_phases) == 0:
+                    st.error("No test data available for classification report")
+                    st.stop()
+
+                report = classification_report(
+                    y_test_phases,
+                    y_pred_phases,
+                    labels=all_present_phases,
+                    output_dict=True,
+                    zero_division=0
+                )
+
+                if len(all_present_phases) == 1:
+                    st.info(f"ℹ️ Only one phase ({all_present_phases[0]}) appears in the test data. Limited metrics available.")
+                elif len(all_present_phases) == 2:
+                    st.info(f"ℹ️ Only two phases appear in test data: {', '.join(all_present_phases)}")
+
+                missing_from_test = set(selected_phases) - set(all_present_phases)
+                if missing_from_test:
+                    st.warning(f"⚠️ Selected phase(s) not in test data: {', '.join(missing_from_test)}")
+
+            except Exception as e:
+                st.error(f"Could not generate classification report: {str(e)}")
+                st.stop()
+
+            phase_colors = {"El Niño": "#f6416c", "Neutral": "#94a3b8", "La Niña": "#3b82f6"}
+            phase_emojis = {"El Niño": "🔴", "Neutral": "⚪", "La Niña": "🔵"}
+
+            phases_to_show = [phase for phase in selected_phases if phase in all_present_phases]
+
+            phase_display_order = ["El Niño", "Neutral", "La Niña"]
+
+            phases_to_show = [phase for phase in phase_display_order if phase in selected_phases]
+
+            for phase in phases_to_show:
+                metrics = report.get(phase)
+
+                if metrics:
+                    precision = metrics['precision']
+                    recall = metrics['recall']
+                    f1 = metrics['f1-score']
+                    support = int(metrics['support'])
+
+                    precision_text = f"{precision:.0%}" if precision > 0 else "N/A"
+                    recall_text = f"{recall:.0%}" if recall > 0 else "N/A"
+                    f1_text = f"{f1:.0%}" if f1 > 0 else "N/A"
+
+                    if support == 0:
+                        precision_explanation = f"No {phase} samples in test data"
+                        recall_explanation = f"No {phase} samples in test data"
+                    elif precision == 0:
+                        precision_explanation = f"Model never correctly predicted {phase}"
+                        recall_explanation = f"Model found {recall:.0%} of actual {phase} months"
+                    elif recall == 0:
+                        precision_explanation = f"When model predicts {phase}, it's correct {precision:.0%} of the time"
+                        recall_explanation = f"Model missed all actual {phase} months"
+                    else:
+                        precision_explanation = f"When model predicts {phase}, it's correct {precision:.0%} of the time"
+                        recall_explanation = f"Model correctly identifies {recall:.0%} of actual {phase} months"
+
+                    month_label = "month" if support == 1 else "months"
+                    was_were = "was" if support == 1 else "were"
+                    st.markdown(f"""
+                    <div class="insight-card" style="background: linear-gradient(135deg, {phase_colors[phase]}20, {phase_colors[phase]}40);">
+                        <h4>{phase_emojis[phase]} {phase} Performance</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                            <div>
+                                <strong>Precision:</strong> {precision:.0%}<br>
+                                <small>When the model predicts "{phase}", it is correct {precision:.0%} of the time.</small>
+                            </div>
+                            <div>
+                                <strong>Recall:</strong> {recall:.0%}<br>
+                                <small>The model correctly identifies {recall:.0%} of actual {phase} months.</small>
+                            </div>
+                            <div>
+                                <strong>F1-Score:</strong> {f1:.0%}<br>
+                                <small>This is a balanced metric combining precision and recall.</small>
+                            </div>
+                            <div>
+                                <strong>Sample Size:</strong> {support}<br>
+                                <small>In the testing dataset, {support} {month_label} {was_were} labeled as {phase}.</small>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="insight-card" style="background: linear-gradient(135deg, #64748b20, #64748b40);">
+                        <h4>{phase_emojis[phase]} {phase} Performance</h4>
+                        <p style="text-align: center; color: #64748b; font-style: italic;">
+                            No {phase} samples found in the test data for this time period and selection.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            if model_type in ["Enhanced Random Forest", "XGBoost"] or model_type == "Ensemble Learning":
+                st.markdown("---")
+                st.markdown("### ⚖️ Feature Importance")
+
+                st.markdown("""
+                Feature importance reveals which climate indicators your custom model relies upon most heavily for making ENSO predictions.
+                """)
+
+                if model_type == "Enhanced Random Forest":
+                    importance = model.feature_importances_
+                elif model_type == "XGBoost":
+                    importance = model.feature_importances_
+                else:
+                    importance = (rf_model.feature_importances_ + xgb_model.feature_importances_) / 2
+
+                importance_df = pd.DataFrame({
+                    "Feature": feature_cols,
+                    "Importance": importance
+                }).sort_values("Importance", ascending=True)
+
+                fig_importance = px.bar(importance_df, y="Feature", x="Importance", orientation="h")
+                fig_importance.update_layout(height=400, margin=dict(t=30, b=30))
+                st.plotly_chart(fig_importance, use_container_width=True)
+
+                top_feature = importance_df.iloc[-1]
+                st.markdown(f"""
+                <div class="insight-card" style="text-align: center;">
+                    <h4>⚖️ <strong>Which features matter most?</strong></h4>
+                    <p>Your {model_type} model found <strong>{top_feature['Feature']}</strong> to be the most important factor, accounting for {top_feature['Importance']:.0%} of its decision-making process.</p>
                 </div>
                 """, unsafe_allow_html=True)
 
