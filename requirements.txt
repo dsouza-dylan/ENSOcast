@@ -9,3 +9,4 @@ matplotlib
 tensorflow
 xgboost
 os
+netCDF4
