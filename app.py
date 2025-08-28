@@ -143,7 +143,7 @@ def load_data():
 @st.cache_data
 def load_sst_dataset():
     try:
-        file_sst = "compressed_sst.nc"
+        file_sst = os.path.join(os.path.dirname(__file__), "compressed_sst.nc")
         ds = xr.open_dataset(file_sst)
         ds["time"] = pd.to_datetime(ds["time"].values)
         return ds
