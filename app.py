@@ -140,16 +140,22 @@ def load_data():
         st.error("Data files not found. Please ensure merged_enso.csv and ENSOcast_model.pkl are in the correct directory.")
         return None
 
-@st.cache_data
+# @st.cache_data
+# def load_sst_dataset():
+#     try:
+#         file_sst = os.path.join(os.path.dirname(__file__), "compressed_sst.nc")
+#         ds = xr.open_dataset(file_sst)
+#         ds["time"] = pd.to_datetime(ds["time"].values)
+#         return ds
+#     except:
+#         st.warning("Could not connect to live SST data. Using cached data for demonstration.")
+#         return None
+
 def load_sst_dataset():
-    try:
-        file_sst = os.path.join(os.path.dirname(__file__), "compressed_sst.nc")
-        ds = xr.open_dataset(file_sst)
-        ds["time"] = pd.to_datetime(ds["time"].values)
-        return ds
-    except:
-        st.warning("Could not connect to live SST data. Using cached data for demonstration.")
-        return None
+    file_sst = os.path.join(os.path.dirname(__file__), "compressed_sst.nc")
+    ds = xr.open_dataset(file_sst)
+    ds["time"] = pd.to_datetime(ds["time"].values)
+    return ds
 
 def create_feature_for_date(target_date, df, feature_cols):
     if isinstance(target_date, str):
