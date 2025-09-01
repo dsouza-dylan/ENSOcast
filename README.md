@@ -1,6 +1,6 @@
 # 🌊 ENSOcast: Decoding El Niño–Southern Oscillation
 
-A comprehensive Streamlit web application that leverages machine learning to analyze, visualize, and predict ENSO (El Niño-Southern Oscillation) patterns using historical climate data. ENSOcast blends interactive education, real-time data visualization, and advanced machine learning models (Random Forest, XGBoost, CNNs, LSTMs, and Ensembles) to make one of Earth’s most important climate patterns more accessible and explainable.
+A comprehensive Streamlit web application that leverages machine learning to analyze, visualize, and predict ENSO (El Niño-Southern Oscillation) patterns using historical climate data. ENSOcast blends interactive education, real-time data visualization, and advanced machine learning models (Random Forest, XGBoost, 1D CNNs, LSTMs, and Ensemble Learning) to make one of Earth’s most important climate patterns more accessible and explainable.
 
 ![ENSOcast Demo](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
