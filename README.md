@@ -37,7 +37,7 @@ The El Niño-Southern Oscillation (ENSO) is one of the most influential climate 
 ### 🔬 Machine Learning Models
 - **Baseline Random Forest Model**: Pre-trained classifier achieving 82% accuracy
 - **Feature Engineering**: Lagged variables, seasonal encoding, and anomaly calculations
-- **Performance Metrics**: Detailed confusion matrices and classification reports
+- **Advanced Models**: Higher-order feature engineering, XGBoost, 1D CNNs, LSTMs, and Ensemble Learning
 
 ### 🛠️ Custom Model Training
 - **Interactive ML Pipeline**: Train your own ENSO prediction models
@@ -148,7 +148,7 @@ month_cos = cos(2π × month / 12)
 ### Core Technologies
 - **Frontend**: Streamlit (Interactive web framework)
 - **Backend**: Python 3.8+
-- **Machine Learning**: scikit-learn, Random Forest
+- **Machine Learning**: scikit-learn, Random Forest, XGBoost, 1D CNN, LSTM, Ensemble Learning
 - **Data Processing**: pandas, numpy, xarray
 - **Visualization**: plotly, matplotlib
 
